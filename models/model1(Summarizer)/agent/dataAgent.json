@@ -1,0 +1,302 @@
+{
+  "name": "dataAgent",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1024,
+        368
+      ],
+      "id": "12e87335-c293-4d35-8083-294d13c8af1b",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://www.coreknowledge.org/free-resource/cksci-unit-6-helpful-computers/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -768,
+        16
+      ],
+      "id": "3737dba7-a60a-46d2-a9a0-53ae5112f01b",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $json[\"data\"];\nconst regex = /https?:\\/\\/[^\\s\"']+\\.pdf/g;\nconst pdfLinks = [...new Set(html.match(regex))];\nreturn pdfLinks.map(url => ({ json: { pdf_url: url } }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        368
+      ],
+      "id": "6bcfa24c-2f1b-472c-9065-d0aa5f8202b2",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.pdf_url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "03596951-e974-49ce-b7d5-694a6151fe22",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        240,
+        384
+      ],
+      "id": "fda4d528-5f4b-45e1-9936-b61ccf9d5f59",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "==You are an expert text processor and summarizer. You will receive the full extracted text of a document, which may contain multiple sections or lessons.\n\nYour task is to analyze the text, identify the main sections (e.g., lessons, chapters, or topics), and provide a concise summary for each section.\n\nThe text of each section continues until the next section or the end of the document.\n\n---\n\n### Output Requirements:\nReturn your result as a **single JSON object** in the following format:\n\n{\n  \"sections\": [\n    {\n      \"title\": \"<The main title or topic of the section you detected. If no clear title exists, create a descriptive one.>\",\n      \"summary\": \"<A concise, high-quality summary of the section's content, focusing on the main ideas and key takeaways. The summary should be between 3 and 5 sentences long.>\",\n      \"original_text\": \"<The full original text content of this section, exactly as it appears in the input PDF.>\"\n    }\n  ]\n}\n\n---\n\n### Notes:\n- Do not include any extra text outside the sections.\n- Do not add explanations or notes; only valid JSON.\n- Each section should be an object in the 'sections' array.\n- If the text is not clearly separated into sections, treat the entire input as a single section.\n\n---\n\nHere is the full text to process:\n\n{{ $json.text }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        528,
+        16
+      ],
+      "id": "d54ea029-561a-4237-b327-2094959c865e",
+      "name": "Message a model"
+    },
+    {
+      "parameters": {
+        "jsCode": "import json\nimport re\n\n# Check if items are received\nif not items:\n    return []\n\ninput_item = items[0]\n\n# --- 1. Get the raw text output from the model ---\ntry:\n    # Correctly access the Gemini/LLM output structure\n    raw_text = input_item.json[\"content\"][\"parts\"][0][\"text\"]\nexcept (KeyError, IndexError, TypeError):\n    return [{'json': {'error': 'LLM output text not found at expected path.', 'input': input_item.json}}]\n\n# --- 2. Extract and CLEAN the JSON string from the markdown block ---\n# This regex looks for code fences (```json...```) or a standalone JSON object ({...})\nmatch = re.search(r'```json\\n(.*?)\\n```|({.*})', raw_text, re.DOTALL)\n\nif not match:\n    return [{'json': {'error': 'Could not find JSON in the model output.', 'rawText': raw_text}}]\n\n# The actual JSON string is in one of the captured groups\njson_string = (match.group(1) or match.group(2)).strip()\n\n# New Robust Cleaning Steps:\n# a) Remove any extra text or ``` that might surround the JSON object\njson_string = re.sub(r'```(json)?\\s*', '', json_string, flags=re.MULTILINE).strip()\n\n# b) Replace common invalid control characters (like stray newlines or tabs inside strings)\n# Note: The replace arguments here use single backslashes for the Python environment.\njson_string = json_string.replace('\\\\n', ' ')\njson_string = json_string.replace('\\\\t', ' ')\njson_string = json_string.replace('\\\\r', ' ')\n\n# c) Remove any surrounding quotes if they exist.\nif json_string.startswith('\"') and json_string.endswith('\"'):\n    json_string = json_string[1:-1]\n    \n# --- 3. Parse the extracted JSON string ---\ntry:\n    # Un-escape inner quotes and then load the JSON\n    # Note: The replace arguments here use single backslashes for the Python environment.\n    json_string = json_string.replace('\\\\\"', '\"')\n    model_output = json.loads(json_string)\nexcept json.JSONDecodeError as e:\n    return [{'json': {'error': 'Failed to parse JSON after cleaning.', 'jsonString': json_string, 'parseError': str(e)}}]\n\n# --- 4. Split the lessons into separate items (Including all three fields) ---\nsections = model_output.get('sections')\n\nif not sections or not isinstance(sections, list):\n    return [{'json': {'error': 'Lessons array not found or is not a list.', 'parsedOutput': model_output}}]\n\noutput_items = []\nfor section in sections:\n    # Retrieve all three keys\n    title = section.get('title')\n    summary = section.get('summary')\n    original_text = section.get('original_text')\n    \n    # Check for required fields before creating an output item\n    if title and original_text:\n        output_items.append({\n            'json': {\n                'title': title,\n                'summary': summary,\n                'original_text': original_text \n            }\n        })\n\nif not output_items and sections:\n    return [{'json': {'warning': 'LLM produced a sections array, but all entries were malformed.', 'sections_count': len(sections)}}]\n\nreturn output_items\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        400
+      ],
+      "id": "5de1db27-0eac-4609-91ab-a63ab63c7290",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1_S8aPlC8AxLA1ZFbhtK_kKhsK4dC2DDPr1EzdeSepEY",
+          "mode": "list",
+          "cachedResultName": "Tasks",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_S8aPlC8AxLA1ZFbhtK_kKhsK4dC2DDPr1EzdeSepEY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_S8aPlC8AxLA1ZFbhtK_kKhsK4dC2DDPr1EzdeSepEY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Task"
+          ],
+          "schema": [
+            {
+              "id": "topic",
+              "displayName": "topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lesson_text",
+              "displayName": "lesson_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "learning_objectives",
+              "displayName": "learning_objectives",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1280,
+        32
+      ],
+      "id": "54f0b05a-0eed-4b43-aabd-a5d9e6eca5e4",
+      "name": "Append row in sheet"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -336,
+        16
+      ],
+      "id": "84def73d-0612-413f-92aa-bf24c2536832",
+      "name": "Loop Over Items",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3ccbece5-6c52-4900-a6e0-d273dc536744",
+  "meta": {
+    "instanceId": "c7568e94cce1f3b236902123943de71afee2ba3b89d1678f63b627b0fb03240c"
+  },
+  "id": "8qJHqH9SclczUzPa",
+  "tags": []
+}

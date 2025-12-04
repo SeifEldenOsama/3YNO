@@ -1,0 +1,15 @@
+torch
+transformers
+bitsandbytes
+accelerate
+
+langchain
+langchain-core
+langchain-community
+
+pyyaml
+roman
+python-Levenshtein
+scipy
+
+nltk

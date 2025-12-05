@@ -55,7 +55,7 @@ defaults:
 all_confs = recursive_lowercase_keys(yaml.safe_load(config_yaml_content ))
 config = Config.load_from_dict(all_confs, ['defaults'])
 
-print("Configuration loaded. Please ensure you have set your OPENAI_API_KEY in a previous cell.")
+print("Configuration loaded.")
 
 prompts_json_content = """
 {

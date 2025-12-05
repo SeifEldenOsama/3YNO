@@ -43,7 +43,7 @@ defaults:
       max_tokens: 64
       stop: []
     PREMISE:
-      max_tokens: 512
+      max_tokens: 200
       stop: ["\\n"]
 # ---------------------------------------------
 
@@ -54,7 +54,7 @@ defaults:
 all_confs = recursive_lowercase_keys(yaml.safe_load(config_yaml_content ))
 config = Config.load_from_dict(all_confs, ['defaults'])
 
-print("Configuration loaded. Please ensure you have set your OPENAI_API_KEY in a previous cell.")
+print("Configuration loaded.")
 
 def generate_title(premise_object, title_prompts, title_config, llm_client):
     title = llm_client.call_with_retry(
@@ -86,14 +86,14 @@ Plants use sunlight to make their own food in a process called photosynthesis. T
 
 prompts_json_content = """
 {
-    "title": {
-        "instruction": "Write a fun and engaging title for a children's short story from this summary: {educational_summary_input}.",
-        "response_prefix": ""
-    },
-    "premise": {
-        "instruction": "You MUST NOT write a title. Only write a story premise. Create one paragraph describing the world, the character, and the main problem or adventure. Do NOT include the word 'Title' or any heading. Educational summary: {educational_summary_input}.",
-        "response_prefix": ""
-    }
+   "title": {
+     "instruction": "Write a fun, simple, and playful title for a children's story based on this summary: {educational_summary_input}. Keep it short and exciting.",
+     "response_prefix": ""
+   },
+   "premise": {
+     "instruction": "Write a one-paragraph story premise suitable for kids. Describe the world, the main character, and the adventure. Use simple words, short sentences, and fun imagery. Educational summary: {educational_summary_input}. Do NOT include the word 'Title' or any headings.",
+     "response_prefix": ""
+   }
 }
 
 """

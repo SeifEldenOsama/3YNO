@@ -59,44 +59,44 @@ print("Configuration loaded. Please ensure you have set your OPENAI_API_KEY in a
 
 prompts_json_content = """
 {
-    "plan": {
-        "setting": {
-            "instruction": "Based on the story premise and title, generate a detailed and imaginative setting for the story. The setting should be a single paragraph, focusing on visual and sensory details that enhance the story's theme. Title: {title}\nPremise: {premise}",
-            "response_prefix": ""
-        },
-        "entity": {
-            "name": {
-                "instruction": "Generate ONLY the next character's name for the story. Output ONLY the name, nothing else. Do NOT include descriptions, numbering, bullet points, punctuation, or extra text. The name must not duplicate previously generated characters.\n\nTitle: {title}\nPremise: {premise}\nSetting: {setting}\nExisting Characters: {entity_list}",
-                "response_prefix": ""
-            },
-            "description": {
-                "instruction": "Generate a sentence description of the character. Focus on appearance, personality, and role. Avoid repeating information or inventing new names.\n\nTitle: {title}\nPremise: {premise}\nSetting: {setting}\nCharacter: {entity_name}",
-                "response_prefix": ""
-            }
-        },
-        "outline": {
-            "event_depth_0": {
-                "instruction": "Generate the first major event of the story. Write ONLY one plain sentence describing the event. Do NOT include numbering, markdown (**bold**), bullet points, headings, or any formatting. Do NOT add quotes. Only output the sentence itself. Title: {title}\nPremise: {premise}\nSetting: {setting}\nCharacters: {entities}\n\nOutline so far:\n{context_prefix}\n{stripped_current_number} [Event Description]\n{context_suffix}",
-                "response_prefix": ""
-            },
-            "entity_depth_0": {
-                "instruction": "List ALL main characters appearing in this top-level event. Output them as a comma-separated list. Characters must all come from the global entity list. Do NOT generate new characters.\n\nTitle: {title}\nPremise: {premise}\nSetting: {setting}\nEvent: {current_event}\nScene: {current_scene}\nDetected Entities: {detected_entities}",
-                "response_prefix": ""
-            },
-            "event": {
-                "instruction": "Based on the story title, premise, setting, and characters, generate the next event in the story outline. The outline should be a hierarchical structure of events. Title: {title}\nPremise: {premise}\nSetting: {setting}\nCharacters: {entities}\n\nOutline so far:\n{context_prefix}\n{stripped_current_number} [Event Description]\n{context_suffix}\n\nGenerate the event description for {stripped_current_number}. The event should be a single, descriptive sentence. If the story is complete, do not generate a next event. The outline should have at least {preferred_max_children} events at this level. {predecessor_info} {successor_info}",
-                "response_prefix": ""
-            },
-            "scene": {
-                "instruction": "Based on the story title, premise, setting, characters, and the current event, generate a single, descriptive sentence for the scene where this event takes place. Title: {title}\nPremise: {premise}\nSetting: {setting}\nCharacters: {entities}\nEvent: {current_event}",
-                "response_prefix": ""
-            },
-            "entity": {
-                "instruction": "Identify ALL characters present in this event. Use ONLY names from the main entity list. Return them as a comma-separated list.\n\nTitle: {title}\nPremise: {premise}\nSetting: {setting}\nEvent: {current_event}\nScene: {current_scene}\nDetected Entities: {detected_entities}",
-                "response_prefix": ""
-            }
-        }
+  "plan": {
+    "setting": {
+      "instruction": "Create a fun, colorful, and simple setting for a children's story. Use short sentences and words kids understand. Show what it looks like, sounds like, and feels like. Title: {title}//Premise: {premise}",
+      "response_prefix": ""
+    },
+    "entity": {
+      "name": {
+        "instruction": "Generate only the next character's name for a children's story. Use fun and simple names. Output only the name. Do not repeat previous names. Title: {title}//Premise: {premise}//Setting: {setting}//Existing Characters: {entity_list}",
+        "response_prefix": ""
+      },
+      "description": {
+        "instruction": "Describe the character in one simple sentence. Include what they look like and what makes them special. Avoid hard words. Title: {title}//Premise: {premise}//Setting: {setting}//Character: {entity_name}",
+        "response_prefix": ""
+      }
+    },
+    "outline": {
+      "event_depth_0": {
+        "instruction": "Write the first important event of the story in one short, clear sentence for kids. Only describe the event. Title: {title}//Premise: {premise}//Setting: {setting}//Characters: {entities}",
+        "response_prefix": ""
+      },
+      "entity_depth_0": {
+        "instruction": "List all main characters appearing in this top-level event. Output them as a comma-separated list. Only use names from the global entity list. Do not invent new names. Title: {title}//Premise: {premise}//Setting: {setting}//Event: {current_event}//Detected Entities: {detected_entities}",
+        "response_prefix": ""
+      },
+      "event": {
+        "instruction": "Write the next event in the story as one simple sentence. Keep it fun, clear, and easy to understand for kids. Title: {title}//Premise: {premise}//Setting: {setting}//Characters: {entities}//Outline so far://{context_prefix}",
+        "response_prefix": ""
+      },
+      "scene": {
+        "instruction": "Describe where this event happens in one sentence. Keep it easy to picture and kid-friendly. Title: {title}//Premise: {premise}//Setting: {setting}//Characters: {entities}//Event: {current_event}",
+        "response_prefix": ""
+      },
+      "entity": {
+        "instruction": "Identify all characters present in this event. Use only names from the main entity list. Return them as a comma-separated list. Title: {title}//Premise: {premise}//Setting: {setting}//Event: {current_event}//Scene: {current_scene}//Detected Entities: {detected_entities}",
+        "response_prefix": ""
+      }
     }
+  }
 }
 
 """

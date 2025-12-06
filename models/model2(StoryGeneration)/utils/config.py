@@ -1,4 +1,4 @@
-!pip install --upgrade pyyaml openai roman python-Levenshtein transformers scipy langchain langchain-core langchain-community
+!pip install --upgrade pyyaml roman python-Levenshtein transformers scipy langchain langchain-core langchain-community
 
 !pip install -q bitsandbytes accelerate
 

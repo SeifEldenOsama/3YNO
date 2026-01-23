@@ -48,6 +48,7 @@ cd 3YNO
 
 - [x] Initial Summarization Pipeline (LED-based)
 - [x] Narrative Generation Framework (Mistral-7B)
+- [ ] Voice Generation for each character
 - [ ] Character Consistency & Visual Asset Generation
 - [ ] Automated Video Assembly Pipeline
 - [ ] User Interface for Educational Content Upload

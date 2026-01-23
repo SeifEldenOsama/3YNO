@@ -1,6 +1,6 @@
 # Contributing to 3YNO
 
-Thank you for your interest in contributing to 3YNO! We welcome contributions from the community to help make this NLP suite even better.
+Thank you for your interest in contributing to 3YNO! We are building an AI-powered educational suite specifically designed for dyslexics and visual learners. We welcome contributions that help make educational content more accessible through technology.
 
 ## How to Contribute
 

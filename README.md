@@ -1,62 +1,57 @@
-# 3YNO: Advanced NLP Suite
+# 3YNO: AI-Powered Educational Suite for Dyslexics & Visual Learners
 
-3YNO is a professional-grade Natural Language Processing (NLP) repository focused on high-quality text generation and analysis. It currently features two primary modules: a sophisticated **Summarizer** and a creative **Story Generator**.
+> **Status: Under Development** 🚧
+> 3YNO is an innovative educational platform designed to bridge the learning gap for dyslexic individuals and visual learners by transforming complex text into engaging, story-driven visual content.
 
-## Project Overview
+## Project Vision
 
-The 3YNO project aims to provide robust, scalable, and easy-to-use tools for common NLP tasks. By leveraging state-of-the-art transformer models and efficient pipelines, 3YNO enables developers and researchers to integrate advanced language capabilities into their applications.
+3YNO (pronounced "EYE-NO") addresses the challenges faced by learners who struggle with traditional text-heavy educational materials. By leveraging state-of-the-art Artificial Intelligence, the application automates the conversion of books, research papers, and general text into explanatory videos.
 
-| Module | Description | Key Technology |
-| :--- | :--- | :--- |
-| **Summarizer** | Efficiently condenses long-form text into concise summaries. | `allenai/led-base-16384` |
-| **Story Generator** | Generates creative and coherent stories from simple premises. | `Mistral-7B-Instruct-v0.3` |
+### Core Workflow
+
+The application follows a sophisticated multi-stage pipeline to ensure educational content is both accurate and accessible:
+
+1.  **Content Extraction**: Uploaded text is analyzed to extract core scientific and educational concepts.
+2.  **Narrative Transformation**: Extracted content is reframed into a compelling story or narrative structure, making it easier to digest.
+3.  **Character Creation**: AI-driven generation of characters that guide the learner through the narrative.
+4.  **Video Synthesis**: (In Development) Final conversion of the narrative and characters into an explanatory video.
 
 ## Repository Structure
 
-The repository is organized into modular components for better maintainability and clarity:
+The project is currently organized into specialized modules that handle different stages of the pipeline:
 
-```text
-3YNO/
-├── models/
-│   ├── summarizer/       # Text summarization module
-│   └── story_generator/  # Creative story generation module
-├── .gitignore            # Standard Python git ignore rules
-├── LICENSE               # MIT License
-└── README.md             # Project documentation
-```
+| Module | Role in Pipeline | Status |
+| :--- | :--- | :--- |
+| **[Summarizer](./models/summarizer)** | Content Extraction & Scientific Distillation | Active Development |
+| **[Story Generator](./models/story_generator)** | Narrative Transformation & Character Planning | Active Development |
 
 ## Getting Started
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- CUDA-enabled GPU (recommended for model inference)
+- Python 3.8+
+- CUDA-enabled GPU (recommended for local model inference)
 
 ### Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/SeifEldenOsama/3YNO.git
-   cd 3YNO
-   ```
+```bash
+git clone https://github.com/SeifEldenOsama/3YNO.git
+cd 3YNO
+# Refer to individual module READMEs for specific dependency installation
+```
 
-2. Install the required dependencies for the specific module you wish to use. For example, for the Story Generator:
-   ```bash
-   pip install -r models/story_generator/requirements.txt
-   ```
+## Roadmap
 
-## Modules
+- [x] Initial Summarization Pipeline (LED-based)
+- [x] Narrative Generation Framework (Mistral-7B)
+- [ ] Character Consistency & Visual Asset Generation
+- [ ] Automated Video Assembly Pipeline
+- [ ] User Interface for Educational Content Upload
 
-### Summarizer
-Located in `models/summarizer/`, this module uses the Longformer Encoder-Decoder (LED) model, which is specifically designed for long documents. It includes scripts for training, evaluation, and inference.
+## Contributing
 
-### Story Generator
-Located in `models/story_generator/`, this module utilizes the Mistral-7B model with 4-bit quantization to generate creative narratives. It features a structured pipeline for planning and executing story generation.
+As an "Under Development" project, we welcome contributions that align with our mission to improve accessibility in education. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request or open an issue for any improvements or bug fixes.

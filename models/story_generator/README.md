@@ -1,43 +1,22 @@
-# Story Generator Module
+# 3YNO: Narrative Transformation & Character Planning
 
-The Story Generator module leverages the power of **Mistral-7B** to create engaging and coherent stories. It uses a multi-stage pipeline to ensure the generated content follows a logical progression from premise to final narrative.
+This module is responsible for the creative "translation" of scientific content into a format that is engaging and accessible for visual learners and dyslexic individuals.
 
-## Features
+## Role in 3YNO
 
-- **Quantized Inference**: Uses 4-bit quantization (bitsandbytes) to run the Mistral-7B model efficiently on consumer hardware.
-- **Structured Pipeline**:
-  1. **Premise Generation**: Creates the initial story idea.
-  2. **Planning**: Outlines the story structure.
-  3. **Story Execution**: Generates the full narrative based on the plan.
-- **Robust Client**: Includes an `LLMClient` with built-in retry logic and post-processing capabilities.
+The Story Generator takes the distilled facts from the Summarizer and:
+1.  **Narrative Framing**: Converts abstract scientific concepts into a story-driven format.
+2.  **Character Development**: Defines characters that will act as "guides" or "protagonists" in the final educational video.
+3.  **Visual Planning**: Outlines the scenes and visual cues that will be used in the video synthesis stage.
 
-## Directory Structure
+## Technical Overview
 
-- `models/`: Contains the LLM client implementation.
-- `pipeline/`: Scripts for the different stages of story generation.
-- `utils/`: Utility functions and configuration.
-- `notebooks/`: Demonstration of the story generation process.
+- **Model**: `Mistral-7B-Instruct-v0.3` (Quantized for efficiency)
+- **Pipeline**:
+    - `premise.py`: Establishes the educational story's core idea.
+    - `plan.py`: Structures the narrative into logical segments.
+    - `story.py`: Generates the final script and character interactions.
 
-## Installation
+## Development Status
 
-Install the specific dependencies for this module:
-```bash
-pip install -r requirements.txt
-```
-
-## Usage
-
-You can run the story generation pipeline through the provided notebook `notebooks/final-story-generation.ipynb` or by integrating the pipeline scripts into your application.
-
-```python
-from pipeline.story import StoryGenerator
-# Initialize and generate
-```
-
-## Requirements
-
-- `transformers`
-- `bitsandbytes`
-- `accelerate`
-- `langchain`
-- `torch`
+Currently focusing on improving character consistency and ensuring that the narrative transformation does not lose the accuracy of the original scientific content.

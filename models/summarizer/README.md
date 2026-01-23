@@ -1,33 +1,22 @@
-# Summarizer Module
+# 3YNO: Content Extraction & Summarization
 
-This module provides a robust implementation for text summarization using the **Longformer Encoder-Decoder (LED)** architecture. It is optimized for processing long documents that exceed the token limits of standard transformer models.
+This module serves as the foundational layer of the 3YNO pipeline. Its primary role is to ingest dense educational materials (books, research papers, etc.) and distill them into core scientific concepts that can be later transformed into narratives.
 
-## Features
+## Role in 3YNO
 
-- **Long Document Support**: Utilizes `allenai/led-base-16384` to handle up to 16,384 tokens.
-- **End-to-End Pipeline**: Includes scripts for data preparation, training, and inference.
-- **Configurable**: Easily adjust hyperparameters and model settings via `src/config.py`.
+For dyslexic and visual learners, large blocks of text can be overwhelming. This module uses the **Longformer Encoder-Decoder (LED)** architecture to:
+- Process long-form educational content (up to 16,384 tokens).
+- Extract essential scientific facts and key takeaways.
+- Provide a structured summary that serves as the "script" for the narrative transformation phase.
 
-## Directory Structure
+## Technical Overview
 
-- `src/`: Core source code for the model and training.
-- `notebooks/`: Jupyter notebooks for experimentation and demonstration.
-- `data/`: Directory for storing training and evaluation datasets.
-- `agent/`: Contains workflow diagrams and agent-related configurations.
+- **Model**: `allenai/led-base-16384`
+- **Focus**: High-fidelity extraction of educational content from long documents.
 
 ## Usage
 
-### Training
-To train the model on your dataset, ensure your data is in the `data/` directory and run:
+Ensure your educational source files are in the `data/` directory, then run:
 ```bash
-python src/train.py
+python src/generate.py --text "Path to educational text"
 ```
-
-### Inference
-To generate a summary for a given text:
-```bash
-python src/generate.py --text "Your long text here"
-```
-
-## Configuration
-Key parameters such as `MAX_INPUT_LENGTH`, `MAX_TARGET_LENGTH`, and `MODEL_CHECKPOINT` can be modified in `src/config.py`.

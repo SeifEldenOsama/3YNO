@@ -133,4 +133,4 @@ dmypy.json
 models/summarizer/checkpoints/
 models/summarizer/logs/
 *.csv
-*.png
+# *.png (Allowing logo in assets)

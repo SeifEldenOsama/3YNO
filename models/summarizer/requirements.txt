@@ -1,0 +1,10 @@
+torch
+transformers
+datasets
+pandas
+numpy
+scikit-learn
+tqdm
+accelerate
+rouge-score
+py7zr

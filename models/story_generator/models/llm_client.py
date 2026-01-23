@@ -1,3 +1,7 @@
+from typing import List, Optional, Callable, Any, Tuple
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 
 bnb_config = BitsAndBytesConfig(
@@ -14,14 +18,45 @@ model = AutoModelForCausalLM.from_pretrained(
     quantization_config=bnb_config,
     device_map="auto"
 )
-class LLMClient:
 
-    def __init__(self, model, tokenizer):
+class LLMClient:
+    """
+    A client for interacting with Large Language Models with built-in retry logic.
+    """
+
+    def __init__(self, model: Any, tokenizer: Any):
+        """
+        Initialize the LLM Client.
+
+        Args:
+            model: The pre-trained model instance.
+            tokenizer: The tokenizer associated with the model.
+        """
         self.model = model
         self.tokenizer = tokenizer
 
-    def call_with_retry(self, prompt_builder, sampling_config, postprocessor=None,
-                        filter=lambda s: True, max_attempts=5, **kwargs):
+    def call_with_retry(
+        self, 
+        prompt_builder: Any, 
+        sampling_config: Any, 
+        postprocessor: Optional[Callable] = None,
+        filter: Callable[[str], bool] = lambda s: True, 
+        max_attempts: int = 5, 
+        **kwargs
+    ) -> Tuple[List[str], Any]:
+        """
+        Call the LLM with a retry mechanism.
+
+        Args:
+            prompt_builder: Object responsible for building the prompt.
+            sampling_config: Configuration for sampling (temperature, top_p, etc.).
+            postprocessor: Optional function to process the output.
+            filter: Optional function to filter the results.
+            max_attempts: Maximum number of retry attempts.
+
+        Returns:
+            A tuple containing a list of generated strings and the full response object.
+        """
         for attempt in range(max_attempts):
             try:
                 completions, full_obj = self(prompt_builder, sampling_config, **kwargs)
@@ -38,7 +73,17 @@ class LLMClient:
 
         raise RuntimeError("Failed after retries.")
 
-    def __call__(self, prompt_builder, sampling_config, **kwargs):
+    def __call__(self, prompt_builder: Any, sampling_config: Any, **kwargs) -> Tuple[List[str], Any]:
+        """
+        Execute the LLM call.
+
+        Args:
+            prompt_builder: Object responsible for building the prompt.
+            sampling_config: Configuration for sampling.
+
+        Returns:
+            A tuple containing a list of generated strings and None (placeholder for full object).
+        """
         messages = prompt_builder.render_for_llm_format(sampling_config.prompt_format)
 
         prompt = self.tokenizer.apply_chat_template(

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="3YNO Logo" width="200">
+</p>
+
 # 3YNO: AI-Powered Educational Suite for Dyslexics & Visual Learners
 
 > **Status: Under Development** 🚧

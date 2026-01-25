@@ -1,8 +1,4 @@
-!pip install --upgrade pyyaml roman python-Levenshtein transformers scipy langchain langchain-core langchain-community
-
-!pip install -q bitsandbytes accelerate
-
-!pip install -U bitsandbytes
+# Dependencies should be installed via requirements.txt
 
 """## preparing LLM"""
 

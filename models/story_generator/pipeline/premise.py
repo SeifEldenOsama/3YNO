@@ -1,3 +1,11 @@
+import os
+import json
+import yaml
+import logging
+from pathlib import Path
+from utils.config import recursive_lowercase_keys, Config, load_prompts_from_dict, init_logging, SamplingConfig, min_max_tokens_filter
+from models.llm_client import llm_client
+
 class Premise:
     @staticmethod
     def load(path):
@@ -13,48 +21,31 @@ class Premise:
         return f'Title: {self.title}\n\nPremise: {self.premise}'
 
     def save(self, path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'w') as f:
             json.dump({
                 'title': self.title,
                 'premise': self.premise
             }, f, indent=4)
 
-config_yaml_content = """
-# MODEL ARGS:
-# for model server / sampling args, you can put them under MODEL to be shared,
-# or under the specific pipeline steps (TITLE / PREMISE) for specific options. unspecified sampling args will inherit from the ancestor.
-# the format is the same as the openai API, since VLLM also provides and openai-style API.
+# Load configurations from external files
+CONFIG_DIR = Path(__file__).parent.parent / "configs"
+MODEL_CONFIG_PATH = CONFIG_DIR / "model_configs" / "premise_config.yaml"
+PROMPTS_PATH = CONFIG_DIR / "prompts" / "premise_prompts.json"
+DATA_PATH = CONFIG_DIR / "data" / "educational_summary.txt"
 
-defaults:
-  output_path: output/premise.json
-  logging_level: info # debug, info, warning, error, critical
-  MODEL:
-    engine: mistralai/Mistral-7B-Instruct-v0.3 # <-- SET TO AN OPENAI COMPLETION MODEL
-    tensor_parallel_size: 1
-    server_type: vllm # <-- THIS MUST BE 'openai'
-    host: http://localhost # These lines are now ignored, but kept for completeness
-    port: 9741
-    prompt_format: openai-chat # <-- USE 'none' for completion models like gpt-3.5-turbo-instruct
-    temperature: 1.2
-    top_p: 0.99
-    frequency_penalty: 0
-    presence_penalty: 0
-    TITLE:
-      max_tokens: 64
-      stop: []
-    PREMISE:
-      max_tokens: 200
-      stop: ["\\n"]
-# ---------------------------------------------
-
-# ---------------------------------------------
-"""
-
-
-all_confs = recursive_lowercase_keys(yaml.safe_load(config_yaml_content ))
+with open(MODEL_CONFIG_PATH, 'r') as f:
+    all_confs = recursive_lowercase_keys(yaml.safe_load(f))
 config = Config.load_from_dict(all_confs, ['defaults'])
 
-print("Configuration loaded.")
+with open(PROMPTS_PATH, 'r') as f:
+    prompts_dict = json.load(f)
+prompts = load_prompts_from_dict(prompts_dict)
+
+with open(DATA_PATH, 'r') as f:
+    educational_summary_input = f.read()
+
+print("Configuration, prompts, and data loaded from external files.")
 
 def generate_title(premise_object, title_prompts, title_config, llm_client):
     title = llm_client.call_with_retry(
@@ -64,7 +55,6 @@ def generate_title(premise_object, title_prompts, title_config, llm_client):
     )[0]
     premise_object.title = title
     return premise_object
-
 
 def generate_premise(premise_object, premise_prompts, premise_config, llm_client):
     premise = llm_client.call_with_retry(
@@ -78,53 +68,28 @@ def generate_premise(premise_object, premise_prompts, premise_config, llm_client
     premise_object.premise = premise
     return premise_object
 
-educational_summary_input = """
-Plants are living things that need care to grow strong and healthy. Every plant starts as a tiny seed. When the seed is placed in soil and given water, it begins to wake up. Soon, small roots grow down into the soil to drink water and collect minerals. After that, a little stem grows upward, reaching for the sunlight.
+if __name__ == "__main__":
+    try:
+        init_logging(config.logging_level)
+        logging.info("Starting premise generation...")
 
-Plants use sunlight to make their own food in a process called photosynthesis. This helps them grow leaves, flowers, and sometimes fruits or vegetables. Different plants need different amounts of water and sunlight, but all of them need love, attention, and patience. By taking care of plants, children learn responsibility and understand how nature works around them.
-"""
+        premise = Premise()
 
-prompts_json_content = """
-{
-   "title": {
-     "instruction": "Write a fun, simple, and playful title for a children's story based on this summary: {educational_summary_input}. Keep it short and exciting.",
-     "response_prefix": ""
-   },
-   "premise": {
-     "instruction": "Write a one-paragraph story premise suitable for kids. Describe the world, the main character, and the adventure. Use simple words, short sentences, and fun imagery. Educational summary: {educational_summary_input}. Do NOT include the word 'Title' or any headings.",
-     "response_prefix": ""
-   }
-}
+        logging.info("Generating title...")
+        generate_title(premise, prompts['title'], config['model']['title'], llm_client)
+        logging.info(f'Generated title: {premise.title}')
 
-"""
-prompts_dict = json.loads(prompts_json_content)
-prompts = load_prompts_from_dict(prompts_dict)
-print("Prompts loaded and templates created.")
+        logging.info("Generating premise...")
+        generate_premise(premise, prompts['premise'], config['model']['premise'], llm_client)
+        logging.info(f'Generated premise: {premise.premise}')
 
-try:
-    init_logging(config.logging_level)
-    logging.info("Starting premise generation...")
+        output_path = config['output_path']
+        premise.save(output_path)
 
+        print("\n--- FINAL RESULT ---")
+        print(premise)
+        print(f"\nPremise object saved to: {output_path}")
 
-    premise = Premise()
-
-    logging.info("Generating title...")
-    generate_title(premise, prompts['title'], config['model']['title'], llm_client)
-    logging.info(f'Generated title: {premise.title}')
-
-    logging.info("Generating premise...")
-
-    generate_premise(premise, prompts['premise'], config['model']['premise'], llm_client)
-    logging.info(f'Generated premise: {premise.premise}')
-
-    output_path = config['output_path']
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    premise.save(output_path)
-
-    print("\n--- FINAL RESULT ---")
-    print(premise)
-    print(f"\nPremise object saved to: {output_path}")
-
-except Exception as e:
-    logging.error(f"An error occurred during execution. Please check your model configuration and ensure your LLM server is running and accessible. Error: {e}")
-    raise e
+    except Exception as e:
+        logging.error(f"An error occurred during execution: {e}")
+        raise e

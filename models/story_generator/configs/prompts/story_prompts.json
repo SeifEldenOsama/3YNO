@@ -1,0 +1,16 @@
+{
+  "story": {
+    "write": {
+        "instruction": "Write the next passage of the story, focusing on the outline event, and maintaining the tone and setting.\n\nStory so far:\n{story_so_far}\n\nOutline Event:\n{outline_event}\n\nScene:\n{scene}\n\nCharacters:\n{entities}\n\nWrite a coherent passage:",
+        "response_prefix": ""
+    },
+    "score": {
+        "instruction": "Rate the quality of the following passage on clarity, consistency, emotion, pacing, and creativity. Return a single number from 1 to 10.\n\nPassage:\n{passage}\n\nScore:",
+        "response_prefix": ""
+    },
+    "summarize": {
+        "instruction": "Summarize the following passage into 2–3 sentences.\n\nPassage:\n{passage}\n\nSummary:",
+        "response_prefix": ""
+    }
+  }
+}

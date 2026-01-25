@@ -1,3 +1,12 @@
+import os
+import json
+import yaml
+import logging
+from pathlib import Path
+from utils.config import recursive_lowercase_keys, Config, load_prompts_from_dict, init_logging, SamplingConfig
+from models.llm_client import llm_client
+from pipeline.plan import Plan
+
 class Story:
     def __init__(self):
         self.passages = []
@@ -16,28 +25,20 @@ class Story:
         all_text = "\n\n".join([p["text"] for p in self.passages])
         return all_text
 
-prompts_story_json_content = """
-{
-  "story": {
-    "write": {
-        "instruction": "Write the next passage of the story, focusing on the outline event, and maintaining the tone and setting.\n\nStory so far:\n{story_so_far}\n\nOutline Event:\n{outline_event}\n\nScene:\n{scene}\n\nCharacters:\n{entities}\n\nWrite a coherent passage:",
-        "response_prefix": ""
-    },
-    "score": {
-        "instruction": "Rate the quality of the following passage on clarity, consistency, emotion, pacing, and creativity. Return a single number from 1 to 10.\n\nPassage:\n{passage}\n\nScore:",
-        "response_prefix": ""
-    },
-    "summarize": {
-        "instruction": "Summarize the following passage into 2–3 sentences.\n\nPassage:\n{passage}\n\nSummary:",
-        "response_prefix": ""
-    }
-  }
-}
-"""
+# Load configurations from external files
+CONFIG_DIR = Path(__file__).parent.parent / "configs"
+MODEL_CONFIG_PATH = CONFIG_DIR / "model_configs" / "story_config.yaml"
+PROMPTS_PATH = CONFIG_DIR / "prompts" / "story_prompts.json"
 
-story_prompts_dict = json.loads(prompts_story_json_content)
+with open(MODEL_CONFIG_PATH, 'r') as f:
+    story_config_data = yaml.safe_load(f)
+story_config = Config(story_config_data, None)
+
+with open(PROMPTS_PATH, 'r') as f:
+    story_prompts_dict = json.load(f)
 story_prompts = load_prompts_from_dict(story_prompts_dict)
-print("Story Prompts loaded and templates created.")
+
+print("Story configuration and prompts loaded from external files.")
 
 class StoryWriter:
     def __init__(self, llm_client, prompts, config):
@@ -59,11 +60,9 @@ class StoryWriter:
             self.config_write,
             max_attempts=3
         )[0]
-
         if isinstance(result, list):
             result = result[0]
         return result
-
 
     def score_passage(self, passage):
         prompt_builder = self.prompts["score"].format(
@@ -74,11 +73,9 @@ class StoryWriter:
             self.config_score,
             max_attempts=2
         )[0]
-
         if isinstance(result, list):
             result = result[0]
         return result.strip()
-
 
     def summarize_passage(self, passage):
         prompt_builder = self.prompts["summarize"].format(
@@ -89,42 +86,9 @@ class StoryWriter:
             self.config_summarize,
             max_attempts=2
         )[0]
-
         if isinstance(result, list):
             result = result[0]
         return result
-
-story_config_yaml = """
-model:
-  engine: "mistralai/Mistral-7B-Instruct-v0.3"
-  host: "http://localhost"
-  port: 8000
-  server_type: vllm
-  tensor_parallel_size: 1
-
-  story:
-    write:
-      max_tokens: 350
-      temperature: 0.7
-      top_p: 0.9
-      prompt_format: openai-chat
-    score:
-      max_tokens: 20
-      temperature: 0.1
-      top_p: 0.5
-      prompt_format: openai-chat
-    summarize:
-      max_tokens: 80
-      temperature: 0.3
-      top_p: 0.9
-      prompt_format: openai-chat
-
-output_path: "outputs/story.json"
-
-"""
-
-story_config = Config(yaml.safe_load(story_config_yaml), None)
-print("Story configuration loaded.")
 
 def generate_story(plan, llm_client, prompts, config):
     story_writer = StoryWriter(
@@ -138,6 +102,7 @@ def generate_story(plan, llm_client, prompts, config):
 
     story_text_so_far = ""
     for node in outline_nodes:
+        if not node.text: continue
         logging.info(f"Generating passage for node {node.number()}: {node.text}")
         passage = story_writer.generate_passage(
             story_so_far=story_text_so_far,
@@ -163,11 +128,8 @@ if __name__ == "__main__":
     try:
         logging.info("Loading plan...")
         plan_path = "output/plan.json"
-
         plan = Plan.load(plan_path)
-
-        logging.info("Configuration and prompts are already loaded globally.")
-
+        
         logging.info("Generating final story...")
         story = generate_story(
             plan,
@@ -178,12 +140,7 @@ if __name__ == "__main__":
 
         output_path = story_config["output_path"]
         story.save(output_path)
-
-        print("\n--- FINAL STORY GENERATED SUCCESSFULLY ---")
-        print(f"Saved to {output_path}")
-        print("\n--- FINAL STORY ---")
-        print(story)
-
+        print(f"Final story saved to {output_path}")
     except Exception as e:
         logging.error(f"Story Generation failed: {e}")
         raise e

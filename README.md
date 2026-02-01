@@ -55,8 +55,4 @@ cd 3YNO
 
 ## Contributing
 
-As an "Under Development" project, we welcome contributions that align with our mission to improve accessibility in education. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+As an "Under Development" project, we welcome contributions that align with our mission to improve accessibility in education.

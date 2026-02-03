@@ -52,7 +52,3 @@ cd 3YNO
 - [ ] Character Consistency & Visual Asset Generation
 - [ ] Automated Video Assembly Pipeline
 - [ ] User Interface for Educational Content Upload
-
-## Contributing
-
-As an "Under Development" project, we welcome contributions that align with our mission to improve accessibility in education.

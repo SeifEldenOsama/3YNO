@@ -18,7 +18,8 @@ The application follows a sophisticated multi-stage pipeline to ensure education
 1.  **Content Extraction**: Uploaded text is analyzed to extract core scientific and educational concepts.
 2.  **Narrative Transformation**: Extracted content is reframed into a compelling story or narrative structure, making it easier to digest.
 3.  **Character Creation**: AI-driven generation of characters that guide the learner through the narrative.
-4.  **Video Synthesis**: (In Development) Final conversion of the narrative and characters into an explanatory video.
+4.  **Voice Generation**: AI-driven synthesis of character voices using fine-tuned Text-to-Speech models.
+5.  **Video Synthesis**: (In Development) Final conversion of the narrative and characters into an explanatory video.
 
 ## Repository Structure
 
@@ -28,6 +29,7 @@ The project is currently organized into specialized modules that handle differen
 | :--- | :--- | :--- |
 | **[Summarizer](./models/summarizer)** | Content Extraction & Scientific Distillation | Active Development |
 | **[Story Generator](./models/story_generator)** | Narrative Transformation & Character Planning | Active Development |
+| **[Harmony TTS](./models/Harmony_TTS)** | Voice Generation for Characters | Active Development |
 
 ## Getting Started
 
@@ -48,7 +50,7 @@ cd 3YNO
 
 - [x] Initial Summarization Pipeline (LED-based)
 - [x] Narrative Generation Framework (Mistral-7B)
-- [ ] Voice Generation for each character
+- [x] Voice Generation for each character
 - [ ] Character Consistency & Visual Asset Generation
 - [ ] Automated Video Assembly Pipeline
 - [ ] User Interface for Educational Content Upload

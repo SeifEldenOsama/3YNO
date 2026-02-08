@@ -1,0 +1,409 @@
+{
+  "name": "DataCollcetion_workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        176,
+        -384
+      ],
+      "id": "4e553039-f22b-4c37-aca7-16d9363fa16e",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    // Mapping voices to gender for the metadata\n    voiceData: [\n      { name: \"Puck\", gender: \"male\" },\n      { name: \"Charon\", gender: \"male\" },\n      { name: \"Zephyr\", gender: \"female\" },\n      { name: \"Kore\", gender: \"female\" },\n      { name: \"Leda\", gender: \"female\" },\n      { name: \"Aoede\", gender: \"female\" },\n      { name: \"Orus\", gender: \"male\" },\n      { name: \"Gacrux\", gender: \"female\" },\n      { name: \"Achird\", gender: \"male\" },\n      { name: \"Sulafat\", gender: \"female\" }\n    ],\n    topics: [\n    \"What makes planets round?\",\n    \"How fast does Earth travel through space?\",\n    \"Why does the Moon have phases?\",\n    \"How do astronauts train on Earth?\",\n    \"What is microgravity?\",\n    \"Why do stars have different colors?\",\n    \"How long does it take light to reach Earth?\",\n    \"What happens if you cry in space?\",\n    \"Why do astronauts wear helmets?\",\n    \"What is a space vacuum?\",\n    \"How do rockets escape Earth’s gravity?\",\n    \"Why does the Moon always show the same side?\",\n    \"What are meteorites made of?\",\n    \"How do astronauts stay healthy in space?\",\n    \"Why is the Sun so hot?\",\n    \"What is cosmic radiation?\",\n    \"How do planets form?\",\n    \"Why does Mars have dust storms?\",\n    \"What is a solar eclipse?\",\n    \"How do space missions return to Earth?\",\n    \"What is a dwarf planet?\",\n    \"Why does Saturn have many moons?\",\n    \"How do space telescopes work?\",\n    \"What is interstellar space?\",\n    \"Why is Uranus tilted?\",\n    \"How do we name stars?\",\n    \"What is a red giant star?\",\n    \"How do astronauts exercise in space?\",\n    \"Why does the Sun rise in the east?\",\n    \"What is a space capsule?\",\n    \"Why does space have no air?\",\n    \"How do astronomers study planets?\",\n    \"What is a gravity assist?\",\n    \"Why does Mercury have extreme temperatures?\",\n    \"How do we detect asteroids?\",\n    \"What is a binary star?\",\n    \"Why does the Moon affect tides?\",\n    \"How do spacecraft land on other planets?\",\n    \"What is a cosmic ray?\",\n    \"Why is Jupiter’s gravity so strong?\",\n\n    \"How old is the Earth?\",\n    \"Why does the Earth spin?\",\n    \"How do continents move?\",\n    \"What causes hot spots on Earth?\",\n    \"Why do volcanoes form near oceans?\",\n    \"How do mountains rise?\",\n    \"Why does sand feel hot?\",\n    \"How do rivers create valleys?\",\n    \"What makes soil fertile?\",\n    \"Why do rocks have layers?\",\n    \"How do earthquakes release energy?\",\n    \"Why do deserts expand?\",\n    \"How does wind cause erosion?\",\n    \"What makes clay sticky?\",\n    \"Why do some rocks float?\",\n    \"How do natural arches form?\",\n    \"Why does land sink in some areas?\",\n    \"How do caves get their shapes?\",\n    \"Why do beaches have waves?\",\n    \"How does ice shape landscapes?\",\n    \"What causes landslides?\",\n    \"Why do rivers flood?\",\n    \"How does sediment build deltas?\",\n    \"Why does lava glow?\",\n    \"How do hot springs stay warm?\",\n    \"Why do cliffs collapse?\",\n    \"How does Earth recycle rocks?\",\n    \"What causes sinkholes?\",\n    \"Why do volcanoes sleep for years?\",\n    \"How do rocks become smooth?\",\n    \"Why do some mountains erupt?\",\n    \"How do glaciers carve land?\",\n    \"Why is Earth’s mantle hot?\",\n    \"How do mineral crystals form?\",\n    \"Why does land crack in droughts?\",\n    \"How do fault lines form?\",\n    \"Why do rocks sparkle?\",\n    \"How does erosion affect farms?\",\n    \"Why do islands sink over time?\",\n    \"How does Earth cool itself?\",\n\n    \"How do animals adapt to cold?\",\n    \"Why do birds build nests?\",\n    \"How do fish breathe underwater?\",\n    \"Why do animals migrate?\",\n    \"How do insects survive winter?\",\n    \"Why do mammals have fur?\",\n    \"How do animals communicate silently?\",\n    \"Why do some animals glow?\",\n    \"How do predators hunt?\",\n    \"Why do animals camouflage?\",\n    \"How do baby animals learn?\",\n    \"Why do animals groom themselves?\",\n    \"How do animals find water?\",\n    \"Why do reptiles bask in the sun?\",\n    \"How do animals balance?\",\n    \"Why do animals play fight?\",\n    \"How do animals remember paths?\",\n    \"Why do animals live in groups?\",\n    \"How do animals sense storms?\",\n    \"Why do animals have instincts?\",\n    \"How do birds build strong nests?\",\n    \"Why do animals mark territory?\",\n    \"How do animals survive drought?\",\n    \"Why do animals change color?\",\n    \"How do animals heal wounds?\",\n    \"Why do animals molt?\",\n    \"How do nocturnal animals see?\",\n    \"Why do animals stretch?\",\n    \"How do animals smell danger?\",\n    \"Why do animals nap often?\",\n    \"How do animals use whiskers?\",\n    \"Why do animals groom others?\",\n    \"How do animals find mates?\",\n    \"Why do animals defend babies?\",\n    \"How do animals learn tricks?\",\n    \"Why do animals have claws?\",\n    \"How do animals share food?\",\n    \"Why do animals migrate long distances?\",\n    \"How do animals stay cool?\",\n    \"Why do animals sleep differently?\",\n      \n    \"Why does our heart never rest?\",\n    \"How does blood carry oxygen?\",\n    \"Why do muscles get sore?\",\n    \"How does the brain learn?\",\n    \"Why do we need sleep?\",\n    \"How do bones heal themselves?\",\n    \"Why do we breathe faster when scared?\",\n    \"How does digestion start?\",\n    \"Why does our body need water?\",\n    \"How does skin protect us?\",\n    \"Why do we feel hungry?\",\n    \"How does the brain control movement?\",\n    \"Why do we sweat?\",\n    \"How does the body fight viruses?\",\n    \"Why do eyes blink automatically?\",\n    \"How does the body balance?\",\n    \"Why do we feel emotions?\",\n    \"How does memory form?\",\n    \"Why do we feel pain?\",\n    \"How does the body grow taller?\",\n    \"Why does hair fall out?\",\n    \"How does the body repair cells?\",\n    \"Why do we feel fear?\",\n    \"How does hearing work?\",\n    \"Why do we need vitamins?\",\n    \"How does taste work?\",\n    \"Why do we need oxygen?\",\n    \"How does the immune system learn?\",\n    \"Why does the body need salt?\",\n    \"How do nerves send signals?\",\n    \"Why do we yawn together?\",\n    \"How does vision form images?\",\n    \"Why do we feel stress?\",\n    \"How does posture work?\",\n    \"Why does the heart beat rhythmically?\",\n    \"How does the body remove waste?\",\n    \"Why do we feel tired after eating?\",\n    \"How does the brain control speech?\",\n    \"Why do we get muscle cramps?\",\n    \"How does the body stay warm?\",\n\n    \"Why does light travel so fast?\",\n    \"How does motion start?\",\n    \"Why does sound fade with distance?\",\n    \"How does gravity pull objects?\",\n    \"Why does friction create heat?\",\n    \"How does energy transfer?\",\n    \"Why does pressure increase underwater?\",\n    \"How does momentum work?\",\n    \"Why do objects fall straight down?\",\n    \"How does acceleration change speed?\",\n    \"Why does light bend?\",\n    \"How does reflection work?\",\n    \"Why does electricity flow?\",\n    \"How does force change motion?\",\n    \"Why does vibration create sound?\",\n    \"How does heat spread?\",\n    \"Why do waves carry energy?\",\n    \"How does magnetism attract metal?\",\n    \"Why does mass matter?\",\n    \"How does inertia work?\",\n    \"Why do objects resist motion?\",\n    \"How does tension work?\",\n    \"Why does sound travel faster in solids?\",\n    \"How does pressure move liquids?\",\n    \"Why do objects compress?\",\n    \"How does energy transform?\",\n    \"Why does speed depend on mass?\",\n    \"How does equilibrium work?\",\n    \"Why do objects oscillate?\",\n    \"How does resonance work?\",\n    \"Why does air resist motion?\",\n    \"How does torque rotate objects?\",\n    \"Why do objects spin?\",\n    \"How does balance work?\",\n    \"Why does temperature rise?\",\n    \"How does light scatter?\",\n    \"Why does sound vibrate air?\",\n    \"How does force multiply?\",\n    \"Why do objects bounce?\",\n    \"How does pressure equalize?\",\n\n    \"How do machines reduce effort?\",\n    \"Why do gears change speed?\",\n    \"How do engines convert fuel?\",\n    \"Why do structures need supports?\",\n    \"How do circuits control power?\",\n    \"Why do machines vibrate?\",\n    \"How do sensors detect motion?\",\n    \"Why do motors spin?\",\n    \"How do robots follow commands?\",\n    \"Why do machines need cooling?\",\n    \"How do levers lift weight?\",\n    \"Why do pulleys reduce force?\",\n    \"How do engines stay efficient?\",\n    \"Why do devices need processors?\",\n    \"How do signals transmit data?\",\n    \"Why do machines need calibration?\",\n    \"How do brakes control motion?\",\n    \"Why do machines need lubrication?\",\n    \"How do computers store data?\",\n    \"Why do devices need updates?\",\n    \"How do antennas receive signals?\",\n    \"Why do machines wear out?\",\n    \"How do sensors measure temperature?\",\n    \"Why do engines need air?\",\n    \"How do machines stay balanced?\",\n    \"Why do systems need backups?\",\n    \"How do chips process logic?\",\n    \"Why do machines need power?\",\n    \"How do controllers manage systems?\",\n    \"Why do devices overheat?\",\n    \"How do tools multiply force?\",\n    \"Why do machines fail?\",\n    \"How do mechanisms lock?\",\n    \"Why do systems need testing?\",\n    \"How do machines self-correct?\",\n    \"Why do devices use software?\",\n    \"How do signals encode data?\",\n    \"Why do machines follow rules?\",\n    \"How do systems synchronize?\",\n    \"Why do machines automate tasks?\",\n\n    \"Why does food change color when cooked?\",\n    \"How does fermentation work?\",\n    \"Why do spices smell strong?\",\n    \"How does sugar preserve food?\",\n    \"Why does fat carry flavor?\",\n    \"How does heat change texture?\",\n    \"Why does baking need timing?\",\n    \"How do acids affect taste?\",\n    \"Why does oil fry food?\",\n    \"How does freezing slow bacteria?\",\n    \"Why does salt draw water?\",\n    \"How does caramelization work?\",\n    \"Why does dough need kneading?\",\n    \"How do enzymes change food?\",\n    \"Why does food spoil?\",\n    \"How does marinating soften meat?\",\n    \"Why does food smell when hot?\",\n    \"How does sugar crystallize?\",\n    \"Why does milk curdle?\",\n    \"How does cooking kill germs?\",\n    \"Why do onions make you cry?\",\n    \"How does yeast make bread rise?\",\n    \"Why does chocolate melt in your mouth?\",\n    \"How do bubbles form in soda?\",\n    \"Why is honey so thick?\",\n    \"How does vinegar clean things?\",\n    \"Why does fruit ripen?\",\n    \"How does caffeine keep you awake?\",\n    \"Why does popcorn pop?\",\n    \"How does soap remove grease?\",\n\n    \"How do ecosystems stay balanced?\",\n    \"Why do species depend on each other?\",\n    \"How do plants clean air?\",\n    \"Why does pollution harm wildlife?\",\n    \"How do forests control climate?\",\n    \"Why do wetlands prevent floods?\",\n    \"How does recycling save energy?\",\n    \"Why does biodiversity matter?\",\n    \"How do oceans regulate temperature?\",\n    \"Why do humans impact habitats?\",\n    \"How does climate affect animals?\",\n    \"Why do ecosystems collapse?\",\n    \"How do food chains work?\",\n    \"Why do invasive species spread?\",\n    \"How does conservation help nature?\",\n    \"Why do coral reefs die?\",\n    \"How do trees store carbon?\",\n    \"Why does soil erosion matter?\",\n    \"How does pollution spread?\",\n    \"Why does water scarcity happen?\",\n    \"How does composting help the soil?\",\n    \"Why do we need bees for food?\",\n    \"How does plastic affect the ocean?\",\n    \"Why do glaciers melt?\",\n    \"How does the ozone layer protect us?\",\n    \"Why do we use renewable energy?\",\n    \"How does rain wash away pollutants?\",\n    \"Why do urban areas feel hotter?\",\n    \"How do seeds travel long distances?\",\n    \"Why is clean water a human right?\",\n\n    \"Why did ancient people build pyramids?\",\n    \"How did the Silk Road connect the world?\",\n    \"Why did the Roman Empire collapse?\",\n    \"How was paper invented?\",\n    \"Why did explorers sail across oceans?\",\n    \"How did the printing press change history?\",\n    \"Why did the Industrial Revolution start?\",\n    \"How were ancient cities designed?\",\n    \"Why did civilizations settle near rivers?\",\n    \"How did humans discover fire?\",\n    \"Why did the Renaissance happen?\",\n    \"How did codes and ciphers win wars?\",\n    \"Why did knights wear armor?\",\n    \"How did the Great Wall of China start?\",\n    \"Why did the Maya civilization vanish?\",\n    \"How did early humans migrate?\",\n    \"Why did the Vikings travel so far?\",\n    \"How was the first calendar made?\",\n    \"Why did castles have moats?\",\n    \"How did the steam engine change travel?\",\n    \"Why did the Olympics begin?\",\n    \"How did writing systems evolve?\",\n    \"Why did nations sign the Magna Carta?\",\n    \"How did the telephone change communication?\",\n    \"Why was the Eiffel Tower built?\",\n    \"How did agriculture lead to cities?\",\n    \"Why did ancient Greeks value philosophy?\",\n    \"How did the compass help sailors?\",\n    \"Why did the Age of Enlightenment occur?\",\n    \"How did railroads unify countries?\",\n    \"Why did gold rushes happen?\",\n    \"How did the Wright brothers fly?\",\n    \"Why did the Apollo 11 mission matter?\",\n    \"How did the internet begin?\",\n    \"Why did the Berlin Wall fall?\",\n    \"How did early doctors study the body?\",\n    \"Why did trade routes create wealth?\",\n    \"How did the Magna Carta influence laws?\",\n    \"Why did the Victorian era change society?\",\n    \"How did electricity change city life?\",\n\n    \"Why is zero a special number?\",\n    \"How does the Fibonacci sequence appear in nature?\",\n    \"Why do we use base-10 for counting?\",\n    \"How do prime numbers protect data?\",\n    \"Why is pi an infinite number?\",\n    \"How does geometry help architects?\",\n    \"Why do we use symbols for math?\",\n    \"How do probability and luck differ?\",\n    \"Why is the Pythagorean theorem useful?\",\n    \"How do computers use binary?\",\n    \"Why do circles have 360 degrees?\",\n    \"How does algebra solve for unknowns?\",\n    \"Why are fractals found in plants?\",\n    \"How does statistics help predict trends?\",\n    \"Why is the Golden Ratio beautiful?\",\n    \"How do graphs visualize data?\",\n    \"Why do we have negative numbers?\",\n    \"How do decimals work?\",\n    \"Why is symmetry important in math?\",\n    \"How do logic puzzles train the brain?\",\n    \"Why do we use metric and imperial units?\",\n    \"How does calculus measure change?\",\n    \"Why is the number 7 considered lucky?\",\n    \"How do algorithms make decisions?\",\n    \"Why are triangles the strongest shape?\",\n    \"How do we calculate the area of a sphere?\",\n    \"Why do prime numbers never end?\",\n    \"How do ratios help in cooking?\",\n    \"Why is math called the universal language?\",\n    \"How do patterns help us learn?\",\n\n    \"What causes thunder and lightning?\",\n    \"How do clouds form?\",\n    \"Why is the sky blue?\",\n    \"How do hurricanes get their names?\",\n    \"Why does it smell like rain?\",\n    \"How do rainbows form?\",\n    \"Why is it colder at the poles?\",\n    \"How do tornadoes spin?\",\n    \"Why does wind blow?\",\n    \"How does humidity affect temperature?\",\n    \"Why does snow have different shapes?\",\n    \"How do seasons change?\",\n    \"Why is fog common in the morning?\",\n    \"How do we predict the weather?\",\n    \"Why are sunsets red and orange?\",\n    \"How does air pressure affect us?\",\n    \"Why do monsoons happen?\",\n    \"How does the Jet Stream move?\",\n    \"Why is hail different from snow?\",\n    \"How do heat waves occur?\",\n    \"Why does the wind howl?\",\n    \"How do deserts stay dry?\",\n    \"Why do clouds have different heights?\",\n    \"How does lightning strike the ground?\",\n    \"Why is it humid in the tropics?\",\n    \"How does a barometer work?\",\n    \"Why do we see our breath in winter?\",\n    \"How do thunderstorms end?\",\n    \"Why does the wind change direction?\",\n    \"How does a drought start?\",\n\n    \"How do plants eat sunlight?\",\n    \"Why do leaves change color in fall?\",\n    \"How do trees communicate through roots?\",\n    \"Why do flowers have scents?\",\n    \"How do cactus survive without water?\",\n    \"Why do some plants eat insects?\",\n    \"How do seeds know when to grow?\",\n    \"Why do trees have bark?\",\n    \"How does water travel up a tall tree?\",\n    \"Why do weeds grow so fast?\",\n    \"How do mushrooms differ from plants?\",\n    \"Why do flowers bloom at different times?\",\n    \"How do plants protect themselves?\",\n    \"Why do roots grow downward?\",\n    \"How do fruits develop?\",\n    \"Why are some plants poisonous?\",\n    \"How do mosses grow without soil?\",\n    \"Why do leaves have veins?\",\n    \"How do plants help the soil?\",\n    \"Why do some trees stay green all year?\",\n\n    \"Why do we dream?\",\n    \"How do habits form?\",\n    \"Why do we feel deja vu?\",\n    \"How does music affect mood?\",\n    \"Why do we laugh?\",\n    \"How do first impressions work?\",\n    \"Why do we forget things?\",\n    \"How does color influence our feelings?\",\n    \"Why do we fear the dark?\",\n    \"How does meditation calm the brain?\",\n    \"Why do we procrastinate?\",\n    \"How do we recognize faces?\",\n    \"Why do some people love spicy food?\",\n    \"How does exercise improve mental health?\",\n    \"Why do we cry when we are happy?\",\n    \"How do we learn a new language?\",\n    \"Why do we feel butterflies in our stomach?\",\n    \"How does focus work?\",\n    \"Why do we enjoy scary movies?\",\n    \"How does confidence help us succeed?\",\n\n    \"What is an atom?\",\n    \"Why does ice float on water?\",\n    \"How do batteries store energy?\",\n    \"Why does metal rust?\",\n    \"How does fire burn?\",\n    \"Why is gold so valuable?\",\n    \"How do magnets work at a molecular level?\",\n    \"Why is diamond so hard?\",\n    \"How does soap kill germs?\",\n    \"Why do neon signs glow?\",\n    \"How does plastic melt?\",\n    \"Why is water called the universal solvent?\",\n    \"How do fireworks get their colors?\",\n    \"Why does salt melt ice?\",\n    \"How do acids and bases react?\",\n    \"Why is oxygen vital for combustion?\",\n    \"How does silver tarnish?\",\n    \"Why do helium balloons float?\",\n    \"How does rubber stretch?\",\n    \"Why do some chemicals smell like rotten eggs?\",\n\n    \"Why is the ocean salty?\",\n    \"How deep is the deepest part of the ocean?\",\n    \"Why is the sea blue?\",\n    \"How do ocean currents move?\",\n    \"Why do tides happen twice a day?\",\n    \"How do whales sing?\",\n    \"Why are coral reefs so colorful?\",\n    \"How do underwater volcanoes erupt?\",\n    \"Why is there more life near the surface?\",\n    \"How do tsunamis start?\",\n    \"Why do waves break near the shore?\",\n    \"How do fish survive high pressure?\",\n    \"Why are some parts of the ocean dead zones?\",\n    \"How does evaporation work?\",\n    \"Why is freshwater so rare?\",\n    \"How do icebergs form?\",\n    \"Why do sea shells have patterns?\",\n    \"How do ships float if they are heavy?\",\n    \"Why is the ocean floor so cold?\",\n    \"How do rivers stay fresh?\",\n\n\n    \"How does a mirror reflect?\",\n    \"Why is a week seven days?\",\n    \"How do clocks keep time?\",\n    \"Why do we use money?\",\n    \"How does a lightbulb glow?\",\n    \"Why do we have fingerprints?\",\n    \"How does a parachute slow you down?\",\n    \"Why is the Earth tilted?\",\n    \"How do we hear echoes?\",\n    \"Why is glass transparent?\",\n    \"How does a vacuum cleaner work?\",\n    \"Why do balls bounce?\",\n    \"How does a compass find North?\",\n    \"Why is lead heavy?\",\n    \"How does a refrigerator stay cold?\",\n    \"Why do we have different time zones?\",\n    \"How does a microphone pick up sound?\",\n    \"Why do we get hiccups?\",\n    \"How does glue stick?\",\n    \"Why is the sky dark at night?\"\n],\n    styles: [\n    \"cheerful\",\"gentle\",\"energetic\",\"whispering\",\"authoritative\",\n    \"playful\",\"calm\",\"excited\",\"sad\",\"serious\",\"friendly\",\n    \"enthusiastic\",\"soothing\",\"firm\",\"formal\",\"curious\",\n    \"happy\",\"angry\",\"fearful\",\"neutral\"\n],\n    templates: [\n    \"A {gender} speaker delivers a {style} explanation in a clear teaching voice.\",\n    \"This recording features a {gender} voice with a {style} speaking style.\",\n    \"A {style} narration presented by a {gender} teacher.\",\n    \"A {gender} educator explains the topic using a {style} tone.\",\n    \"A clear and {style} explanation spoken by a {gender} voice.\",\n    \"This audio contains a {gender} speaker using a {style} delivery.\",\n    \"A {style} teaching narration performed by a {gender} individual.\",\n    \"A professional {gender} voice speaking in a {style} manner.\",\n    \"A calm and informative {style} explanation from a {gender} speaker.\",\n    \"A {gender} teacher presents the topic with a {style} approach.\",\n    \"A {style} educational explanation delivered by a {gender} voice.\",\n    \"A natural {gender} voice expressing a {style} teaching style.\",\n    \"A {gender} narrator speaks with a {style} tone for learning purposes.\",\n    \"A friendly {style} explanation provided by a {gender} speaker.\",\n    \"A focused {style} teaching voice from a {gender} educator.\",\n    \"This sample includes a {gender} voice using a {style} narration style.\",\n    \"A structured {style} explanation spoken by a {gender} teacher.\",\n    \"A {gender} speaker communicates the lesson in a {style} way.\",\n    \"An educational {style} narration performed by a {gender} voice.\",\n    \"A confident {gender} speaker delivering a {style} explanation.\",\n    \"A simple and {style} teaching narration from a {gender} educator.\",\n    \"A {gender} instructional voice with a {style} expression.\",\n    \"A clear {style} lesson explained by a {gender} speaker.\",\n    \"A composed {gender} voice presenting content in a {style} tone.\",\n    \"A {style} learning-focused narration by a {gender} teacher.\",\n    \"A professional educational explanation in a {style} voice by a {gender} speaker.\",\n    \"A {gender} speaker delivers knowledge using a {style} teaching tone.\",\n    \"A smooth and {style} explanation spoken by a {gender} voice.\",\n    \"A {style} classroom-style narration from a {gender} educator.\",\n    \"A direct and {style} explanation presented by a {gender} speaker.\"\n]\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        -192
+      ],
+      "id": "a66a73f5-e40d-4137-b307-1eb9e89cafd9",
+      "name": "INITIALIZER"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = items[0].json;\n\n// 1. Pick a random topic, style, and template\nconst topic = data.topics[Math.floor(Math.random() * data.topics.length)];\nconst style = data.styles[Math.floor(Math.random() * data.styles.length)];\nconst template = data.templates[Math.floor(Math.random() * data.templates.length)];\n\n// 2. Pick a random voice object (which contains name and gender)\nconst randomVoiceObj = data.voiceData[Math.floor(Math.random() * data.voiceData.length)];\nconst voice = randomVoiceObj.name;\nconst gender = randomVoiceObj.gender;\n\n// 3. Pre-fill the style into the template description\nconst description = template\n  .replace(/{style}/g, style)\n  .replace(/{gender}/g, gender);\n\nreturn [{\n  json: { \n    topic, \n    style, \n    voice, \n    gender, \n    description\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        16
+      ],
+      "id": "cf04c7b5-f10c-4a48-935d-24fc6343a927",
+      "name": "RANDOMIZER"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=As a teacher feeling {{$json.style}}, explain {{$json.topic}} in 2 simple sentences for a child."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1056,
+        -208
+      ],
+      "id": "2e497f49-922e-42e2-9d8b-91e8996ff5d1",
+      "name": "Text Generator",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "d2WGFVCRUb8gUUHu",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.content.parts[0].text\n\nreturn [\n  {\n    json: {\n      ...items[0].json,\n      text\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        16
+      ],
+      "id": "e4f63d6d-7ae3-427b-b612-c771565dd81c",
+      "name": "Text Extractor"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=AIzaSyDICu4dQImMX1YEtVkbSkQgabm63T9zZ48",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"{{ $node[\"RANDOMIZER\"].json[\"description\"] }}\\n\\n{{ $json[\"text\"] }}\"\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"response_modalities\": [\"AUDIO\"],\n    \"speechConfig\": {\n      \"voiceConfig\": {\n        \"prebuiltVoiceConfig\": {\n          \"voiceName\": \"{{ $node[\"RANDOMIZER\"].json[\"voice\"] }}\"\n        }\n      }\n    }\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1856,
+        -224
+      ],
+      "id": "16bcfe97-5e28-44aa-96f0-f5a505519eb9",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const responseData = $input.first().json;\nconst randomizerData = $node[\"RANDOMIZER\"].json;\n\n// 1. Extract the base64 audio string\nlet base64Audio = \"\";\nif (responseData.candidates && responseData.candidates[0].content.parts[0].inlineData) {\n    base64Audio = responseData.candidates[0].content.parts[0].inlineData.data;\n} else if (responseData.data) {\n    base64Audio = responseData.data;\n}\n\nif (!base64Audio) throw new Error(\"No audio data found.\");\n\n// 2. Create WAV Header (24kHz, 16-bit, Mono)\nconst pcmBuffer = Buffer.from(base64Audio, 'base64');\nconst createWavHeader = (pcmLength) => {\n    const header = Buffer.alloc(44);\n    header.write('RIFF', 0);\n    header.writeUInt32LE(36 + pcmLength, 4);\n    header.write('WAVE', 8);\n    header.write('fmt ', 12);\n    header.writeUInt32LE(16, 16);\n    header.writeUInt16LE(1, 20);\n    header.writeUInt16LE(1, 22); // Channels\n    header.writeUInt32LE(24000, 24); // Sample Rate\n    header.writeUInt32LE(48000, 28); // Byte Rate\n    header.writeUInt16LE(2, 32); // Block Align\n    header.writeUInt16LE(16, 34); // Bits per Sample\n    header.write('data', 36);\n    header.writeUInt32LE(pcmLength, 40);\n    return header;\n};\n\nconst finalWavBuffer = Buffer.concat([createWavHeader(pcmBuffer.length), pcmBuffer]);\n\n// 3. Format Filename: teacher_XXX_YYYYMMDD_HHMMSS.wav\nconst now = new Date();\nconst timestamp = now.toISOString().replace(/[-T:]/g, '').split('.')[0];\nconst randomId = Math.floor(Math.random() * 1000).toString().padStart(3, '0');\nconst fileName = `teacher_${randomId}_${timestamp}.wav`;\nconst relativePath = `voices/${fileName}`;\n\n// 4. Construct the EXACT JSON structure from your template\nconst metadataLine = {\n    audio_file: relativePath,\n    text: randomizerData.text || \"No text found\", // Ensure text is passed from previous node\n    description: randomizerData.description,\n    voice_name: randomizerData.voice,\n    style: randomizerData.style,\n    topic: randomizerData.topic,\n    gender: randomizerData.gender\n};\n\nreturn [{\n    json: metadataLine,\n    binary: {\n        data: {\n            data: finalWavBuffer.toString('base64'),\n            mimeType: 'audio/wav',\n            fileName: fileName,\n        }\n    }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2128,
+        16
+      ],
+      "id": "3e043d68-ff1c-4315-a697-d7d7183f2f47",
+      "name": "handle audio file"
+    },
+    {
+      "parameters": {
+        "name": "={{ $json.audio_file.split('/')[1] }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1bM_AM-baHtrCDY8JfJGWe6LwMBQbuIsc",
+          "mode": "list",
+          "cachedResultName": "n8n data",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1bM_AM-baHtrCDY8JfJGWe6LwMBQbuIsc"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2400,
+        -240
+      ],
+      "id": "21b9b4da-8148-4538-8644-92962b63ac29",
+      "name": "Upload raw file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "TBZlPoupukrFhn19",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "16cddswzeIX-VYHurqU3STSeJVDYtAZPfU7y2-1Z4RJI",
+          "mode": "list",
+          "cachedResultName": "metadata",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16cddswzeIX-VYHurqU3STSeJVDYtAZPfU7y2-1Z4RJI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16cddswzeIX-VYHurqU3STSeJVDYtAZPfU7y2-1Z4RJI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "audio_file": "={{ $json.originalFilename }}",
+            "text": "={{ $('Text Extractor').item.json.text }}",
+            "description": "={{ $('RANDOMIZER').item.json.description }}",
+            "voice_name": "={{ $('RANDOMIZER').item.json.voice }}",
+            "style": "={{ $('RANDOMIZER').item.json.style }}",
+            "topic": "={{ $('RANDOMIZER').item.json.topic }}",
+            "gender": "={{ $('RANDOMIZER').item.json.gender }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "audio_file",
+              "displayName": "audio_file",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "voice_name",
+              "displayName": "voice_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "style",
+              "displayName": "style",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "topic",
+              "displayName": "topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "gender",
+              "displayName": "gender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2624,
+        -32
+      ],
+      "id": "ea662d0a-bd54-4505-8653-6d3d6c48ebe8",
+      "name": "upload metadata",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "evdh0xTutNRKW38Y",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2976,
+        208
+      ],
+      "id": "122b5f2a-6b30-4574-94de-6833ac435cc6",
+      "name": "Wait",
+      "webhookId": "589ce728-40a2-42f3-9290-6eb4299c4925"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "INITIALIZER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INITIALIZER": {
+      "main": [
+        [
+          {
+            "node": "RANDOMIZER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RANDOMIZER": {
+      "main": [
+        [
+          {
+            "node": "Text Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Generator": {
+      "main": [
+        [
+          {
+            "node": "Text Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Extractor": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "handle audio file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "handle audio file": {
+      "main": [
+        [
+          {
+            "node": "Upload raw file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload raw file": {
+      "main": [
+        [
+          {
+            "node": "upload metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "upload metadata": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "INITIALIZER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "49791f31-f8cd-4c4c-bd44-e549d2a53b43",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8a85e4ae65ee28f34f36ebab095b7bce893921cda6c5dfadb183a932b26f257a"
+  },
+  "id": "9erIJkrG17eUOZOPnjEta",
+  "tags": []
+}

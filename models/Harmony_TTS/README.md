@@ -73,5 +73,3 @@ The `compare_models.py` script allows you to generate audio from both the base m
 ```bash
 modal run scripts/compare_models.py
 ```
-
-Developed with ❤️ by [Seif Elden Osama](https://github.com/SeifEldenOsama)

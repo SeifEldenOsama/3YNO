@@ -14,7 +14,7 @@ try:
         _env = Path(__file__).parent.parent / ".env"
     if _env.exists():
         load_dotenv(_env)
-        print(f"✅ Loaded .env from {_env}")
+        print(f"Loaded .env from {_env}")
 except ImportError:
     pass
 

@@ -107,6 +107,6 @@ def main(
         seed                = seed,
         lora_path           = lora_path,
     )
-    print(f"\n🎉 Generated {len(saved)} image(s):")
+    print(f"\nGenerated {len(saved)} image(s):")
     for p in saved:
         print(f"   → {p}")

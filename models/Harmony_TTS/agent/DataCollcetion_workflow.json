@@ -86,7 +86,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=AIzaSyDICu4dQImMX1YEtVkbSkQgabm63T9zZ48",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=YOUR_API_KEY",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"{{ $node[\"RANDOMIZER\"].json[\"description\"] }}\\n\\n{{ $json[\"text\"] }}\"\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"response_modalities\": [\"AUDIO\"],\n    \"speechConfig\": {\n      \"voiceConfig\": {\n        \"prebuiltVoiceConfig\": {\n          \"voiceName\": \"{{ $node[\"RANDOMIZER\"].json[\"voice\"] }}\"\n        }\n      }\n    }\n  }\n}",

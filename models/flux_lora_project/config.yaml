@@ -1,0 +1,86 @@
+credentials:
+  hf_token:        ""
+  kaggle_username: "" 
+  kaggle_key:      "" 
+
+dataset:
+  source: "kaggle"                   
+  kaggle_dataset: "seifosamahosney/character-descriptions"
+  hf_dataset: "seifosamahosney/character-descriptions"
+  local_path: "./data"                         
+  image_col: "image"                            
+  caption_col: "description"                    
+  image_extensions:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".webp"
+    - ".bmp"
+    - ".tiff"
+    - ".tif"
+    - ".heic"
+    - ".heif"
+    - ".avif"
+    - ".jfif"
+
+model:
+  name: "black-forest-labs/FLUX.1-dev"
+  revision: "main"
+
+lora:
+  rank:           16
+  alpha:          16
+  dropout:        0.0
+  bias:           "none"
+  target_modules:
+    - "to_q"
+    - "to_k"
+    - "to_v"
+    - "to_out.0"
+    - "add_q_proj"
+    - "add_k_proj"
+    - "add_v_proj"
+
+training:
+  resolution:           512
+  batch_size:           1
+  gradient_accum_steps: 4
+  max_steps:            2000
+  learning_rate:        1.0e-4
+  lr_scheduler:         "cosine" 
+  lr_warmup_steps:      100
+  max_grad_norm:        1.0
+  seed:                 42
+  guidance_scale:       3.5
+  mixed_precision:      "bf16" 
+  num_workers:          2
+
+checkpointing:
+  save_steps:   200
+  output_dir:   "/vol/flux-lora-output"   
+  local_output: "./outputs"             
+
+inference:
+  prompt:              "a portrait of a character"
+  num_images:          4
+  num_inference_steps: 28
+  guidance_scale:      3.5
+  lora_scale:          0.9
+  seed:                42
+  output_dir:          "/vol/inference_outputs"
+  local_output:        "./outputs/inference"
+
+hub:
+  push_to_hub:   true
+  repo_id:       "seifosamahosney/flux-lora-characters"
+  private:       false
+  commit_message: "Upload FLUX LoRA fine-tuned model"
+
+modal:
+  app_name:    "flux-lora"
+  volume_name: "flux-lora-vol"
+  gpu:         "H100"
+  timeout:     14400      
+  python_version: "3.11"
+  torch_version:  "2.5.1"
+  cuda_version:   "cu124"

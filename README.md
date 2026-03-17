@@ -50,7 +50,7 @@ Fine-tuned [allenai/led-base-16384](https://huggingface.co/allenai/led-base-1638
 | Max input | 1024 tokens |
 | Max output | 256 tokens |
 | Training | 8 epochs on H100 80GB |
-| HF Repo | [seifosamahosney/led-summarizer](https://huggingface.co/seifosamahosney/led-summarizer) |
+| HF Repo | [SeifElden2342532/children_educational_summarizer](https://huggingface.co/SeifElden2342532/children_educational_summarizer) |
 
 ---
 
@@ -63,7 +63,7 @@ Fine-tuned [black-forest-labs/FLUX.1-dev](https://huggingface.co/black-forest-la
 | Method | LoRA (rank 16, alpha 16) |
 | Dataset | Character descriptions (~2016 images) |
 | Training | 2000 steps on H100 80GB |
-| HF Repo | [seifosamahosney/flux-lora-characters](https://huggingface.co/seifosamahosney/flux-lora-characters) |
+| HF Repo | [SeifElden2342532/flux-lora-characters](https://huggingface.co/SeifElden2342532/flux-lora-characters) |
 
 ---
 

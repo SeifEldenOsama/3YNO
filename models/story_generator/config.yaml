@@ -1,0 +1,27 @@
+credentials:
+  hf_token: ""
+
+model:
+  id: "Qwen/Qwen2.5-32B-Instruct"
+  cache_dir: "/model-cache"
+  max_new_tokens: 4000
+  temperature: 0.7
+  top_p: 0.9
+
+story:
+  min_characters: 2
+  max_characters: 6
+  min_backgrounds: 2
+  max_backgrounds: 6
+  min_scenes: 3
+  max_scenes: 10
+
+output:
+  dir: "outputs"
+
+modal:
+  app_name: "kids-story-generator"
+  volume_name: "story-model-cache"
+  gpu: "A100"
+  timeout: 3600
+  python_version: "3.11"

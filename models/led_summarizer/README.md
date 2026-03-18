@@ -113,7 +113,7 @@ python scripts/upload.py --path ./outputs/model
 ## Run API
 
 ```bash
-modal run API/API.py
+modal deploy API/API.py
 ```
 
 ---

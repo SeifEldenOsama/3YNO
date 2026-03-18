@@ -69,6 +69,12 @@ training:
 ```
 
 ### 4. Train on Modal (H100)
+
+**Authenticate Modal:**
+```bash
+modal token set --token-id YOUR_ID --token-secret YOUR_SECRET
+```
+
 ```bash
 make modal-train
 # or:

@@ -47,7 +47,7 @@ hub:
 
 modal:
   volume_name:    "led-summarizer-vol"
-  gpu:            "A100"
+  gpu:            "H100"
   timeout:        86400       
   python_version: "3.11"
   torch_version:  "2.5.1"

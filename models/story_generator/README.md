@@ -56,8 +56,7 @@ story_generator/
 │   ├── config.py         # Config dataclasses + YAML/env loader
 │   └── save_outputs.py   # Structures and writes all output files
 ├── scripts/
-│   ├── run.py            # Local entrypoint
-│   └── preview.py        # Pretty-print outputs to terminal
+│   ├── run.py            # Local entrypoint 
 ├── cloud/
 │   └── run.py            # Modal (cloud GPU) entrypoint
 ├── config.yaml           # All runtime settings
@@ -118,7 +117,7 @@ Optional flags:
 --output   Output directory (default: value from config.yaml)
 ```
 
-### Cloud (Modal — H100 GPU)
+### Cloud (Modal — A100 GPU)
 
 ```bash
 # Using Makefile
@@ -130,17 +129,6 @@ modal run cloud/run.py --lesson-file lesson.txt
 
 The cloud runner spins up an A100 on Modal, loads the model into a persistent volume (`story-model-cache`) so it is only downloaded once, runs the full pipeline, and saves all outputs locally to `outputs/`.
 
-### Preview Outputs
-
-After a run completes, inspect the generated story in the terminal:
-
-```bash
-make preview
-# or
-python scripts/preview.py --input outputs/story_index.json
-```
-
----
 
 ## Configuration
 

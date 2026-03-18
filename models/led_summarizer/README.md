@@ -107,6 +107,15 @@ python scripts/upload.py --path ./outputs/model
 
 ---
 
+## Run API
+
+```bash
+modal run API/API.py
+```
+
+---
+
+
 ## Configuration
 
 All settings are in `config.yaml`:

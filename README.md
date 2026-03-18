@@ -33,7 +33,7 @@ The project is currently organized into specialized modules that handle differen
 | :--- | :--- | :--- | :--- |
 | **[Summarizer](./models/led_summarizer)** | Content Extraction & Scientific Distillation | LED-base-16384 (fine-tuned) | Active Development |
 | **[Story Generator](./models/story_generator)** | Narrative Transformation & Character Planning | Mistral-7B | Active Development |
-| **[Character Generator](./models/character_generator)** | Character & Background Image Generation | FLUX.1-dev (LoRA fine-tuned) | Active Development |
+| **[Character Generator](./models/flux_lora_project)** | Character & Background Image Generation | FLUX.1-dev (LoRA fine-tuned) | Active Development |
 | **[Harmony TTS](./models/Harmony_TTS)** | Voice Generation for Characters | Custom TTS | Active Development |
 
 ---

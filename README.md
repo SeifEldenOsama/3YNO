@@ -32,7 +32,7 @@ The project is currently organized into specialized modules that handle differen
 | Module | Role in Pipeline | Model | Status |
 | :--- | :--- | :--- | :--- |
 | **[Summarizer](./models/led_summarizer)** | Content Extraction & Scientific Distillation | LED-base-16384 (fine-tuned) | Active Development |
-| **[Story Generator](./models/story_generator)** | Narrative Transformation & Character Planning | Mistral-7B | Active Development |
+| **[Story Generator](./models/story_generator)** | Narrative Transformation & Character Planning | Qwen2.5-32B-Instruct | Active Development |
 | **[Character Generator](./models/flux_lora_project)** | Character & Background Image Generation | FLUX.1-dev (LoRA fine-tuned) | Active Development |
 | **[Harmony TTS](./models/Harmony_TTS)** | Voice Generation for Characters | Custom TTS | Active Development |
 
@@ -41,6 +41,7 @@ The project is currently organized into specialized modules that handle differen
 ## Models
 
 ### Summarizer — LED fine-tuned
+
 Fine-tuned [allenai/led-base-16384](https://huggingface.co/allenai/led-base-16384) for abstractive summarization of educational texts.
 
 | | |
@@ -54,7 +55,22 @@ Fine-tuned [allenai/led-base-16384](https://huggingface.co/allenai/led-base-1638
 
 ---
 
+### Story Generator — Qwen2.5-32B-Instruct
+
+Fine-tuned [Qwen/Qwen2.5-32B-Instruct](https://huggingface.co/Qwen/Qwen2.5-32B-Instruct) for transforming educational lessons into structured children's stories with characters, scenes, and voice-ready scripts.
+
+| | |
+|---|---|
+| Base model | `Qwen/Qwen2.5-32B-Instruct` |
+| Quantization | 4-bit NF4 via `bitsandbytes` |
+| GPU | A100 80GB |
+| Cloud runtime | [Modal](https://modal.com) |
+| Module path | [`./models/story_generator`](./models/story_generator) |
+
+---
+
 ### Character Generator — FLUX.1-dev LoRA
+
 Fine-tuned [black-forest-labs/FLUX.1-dev](https://huggingface.co/black-forest-labs/FLUX.1-dev) with LoRA for generating educational characters and visual scenes.
 
 | | |
@@ -70,10 +86,12 @@ Fine-tuned [black-forest-labs/FLUX.1-dev](https://huggingface.co/black-forest-la
 ## Getting Started
 
 ### Prerequisites
+
 - Python 3.8+
 - CUDA-enabled GPU (recommended for local model inference)
 
 ### Installation
+
 ```bash
 git clone https://github.com/SeifEldenOsama/3YNO.git
 cd 3YNO
@@ -86,7 +104,7 @@ Refer to individual module READMEs for specific dependency installation.
 ## Roadmap
 
 - [x] Initial Summarization Pipeline (LED-based)
-- [x] Narrative Generation Framework (Mistral-7B)
+- [x] Narrative Generation Framework (Qwen2.5-32B)
 - [x] Character & Background Image Generation (FLUX.1-dev LoRA)
 - [x] Voice Generation for each character
 - [ ] Apply each voice generated for each character with its image, to generate small video scene for each one

@@ -14,6 +14,7 @@ led_summarizer/
 ├── .gitignore
 ├── requirements.txt
 ├── Makefile
+│── data_summarization.csv
 │
 ├── src/
 │   ├── config.py            ← config loader

@@ -1,0 +1,47 @@
+credentials:
+  hf_token: ""
+
+dataset:
+  repo_id:              "SeifElden2342532/parler-tts-dataset-format"
+  description_col:      "text_description"
+  prompt_col:           "text"
+  audio_col:            "audio"
+  train_split:          "train"
+  eval_split:           "validation"
+  max_train_samples:    18700
+  max_eval_samples:     2000
+  seed:                 42
+
+model:
+  name:                  "parler-tts/parler-tts-mini-v1"
+  description_tokenizer: "google/flan-t5-base"
+  sampling_rate:         44100
+
+training:
+  output_dir:             "/vol/harmony-tts-output"
+  local_output:           "./outputs/model"
+  per_device_train_batch: 4
+  per_device_eval_batch:  4
+  gradient_accum_steps:   4
+  learning_rate:          1.0e-5
+  lr_scheduler:           "cosine"
+  warmup_steps:           200
+  max_steps:              1000
+  eval_steps:             200
+  save_steps:             200
+  weight_decay:           0.01
+  bf16:                   true
+  gradient_checkpointing: true
+  seed:                   42
+
+hub:
+  repo_id:        "SeifElden2342532/Harmony_Parler_TTS"
+  private:        false
+  commit_message: "Upload Harmony TTS full fine-tuned model"
+
+modal:
+  app_name:    "harmony-tts"
+  volume_name: "tts-dataset-storage"
+  gpu:         "H100:1"
+  timeout:     25000
+  python_version: "3.11"

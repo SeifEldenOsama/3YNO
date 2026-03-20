@@ -34,7 +34,7 @@ The project is currently organized into specialized modules that handle differen
 | **[Summarizer](./models/led_summarizer)** | Content Extraction & Scientific Distillation | LED-base-16384 (fine-tuned) | Active Development |
 | **[Story Generator](./models/story_generator)** | Narrative Transformation & Character Planning | Qwen2.5-32B-Instruct | Active Development |
 | **[Character Generator](./models/flux_lora_project)** | Character & Background Image Generation | FLUX.1-dev (LoRA fine-tuned) | Active Development |
-| **[Harmony TTS](./models/Harmony_TTS)** | Voice Generation for Characters | Custom TTS | Active Development |
+| **[Harmony TTS](./models/Harmony_TTS)** | Voice Generation for Characters | Parler-TTS-mini-v1 (full fine-tuned) | Active Development |
 
 ---
 
@@ -83,6 +83,22 @@ Fine-tuned [black-forest-labs/FLUX.1-dev](https://huggingface.co/black-forest-la
 
 ---
 
+### Harmony TTS — Parler-TTS full fine-tuned
+
+Full fine-tuning of [parler-tts/parler-tts-mini-v1](https://huggingface.co/parler-tts/parler-tts-mini-v1) for generating expressive character voices in educational videos.
+
+| | |
+|---|---|
+| Base model | `parler-tts/parler-tts-mini-v1` |
+| Fine-tuning | Full fine-tuning (all weights) |
+| Dataset | `SeifElden2342532/parler-tts-dataset-format` (18,700 samples) |
+| Max steps | 1,000 |
+| Learning rate | 1e-5 (cosine) |
+| GPU | H100 80GB |
+| HF Repo | [SeifElden2342532/Harmony_Parler_TTS](https://huggingface.co/SeifElden2342532/Harmony_Parler_TTS) |
+
+---
+
 ## Getting Started
 
 ### Prerequisites
@@ -106,6 +122,6 @@ Refer to individual module READMEs for specific dependency installation.
 - [x] Initial Summarization Pipeline (LED-based)
 - [x] Narrative Generation Framework (Qwen2.5-32B)
 - [x] Character & Background Image Generation (FLUX.1-dev LoRA)
-- [x] Voice Generation for each character
+- [x] Voice Generation for each character (Harmony TTS)
 - [ ] Apply each voice generated for each character with its image, to generate small video scene for each one
 - [ ] Integrate all the video scenes into one educational interactive video

@@ -31,7 +31,7 @@ The project is currently organized into specialized modules that handle differen
 
 | Module | Role in Pipeline | Model | Approach | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **[Summarizer](./models/led_summarizer)** | Content Extraction & Scientific Distillation | BART-large-CNN | Fine-tuned | Active Development |
+| **[Summarizer](./models/bart_summarizer)** | Content Extraction & Scientific Distillation | BART-large-CNN | Fine-tuned | Active Development |
 | **[Story Generator](./models/story_generator)** | Narrative Transformation & Character Planning | Qwen2.5-32B-Instruct | Prompt Engineering | Active Development |
 | **[Character Generator](./models/flux_lora_project)** | Character & Background Image Generation | FLUX.1-dev | LoRA fine-tuned | Active Development |
 | **[Harmony TTS](./models/Harmony_TTS)** | Voice Generation for Characters | Parler-TTS-mini-v1 | Full fine-tuned | Active Development |

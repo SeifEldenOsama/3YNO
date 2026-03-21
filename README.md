@@ -93,7 +93,7 @@ Full fine-tuning of [parler-tts/parler-tts-mini-v1](https://huggingface.co/parle
 | Base model | `parler-tts/parler-tts-mini-v1` |
 | Approach | Full fine-tuning (all weights) |
 | Dataset | `SeifElden2342532/parler-tts-dataset-format` (18,700 samples) |
-| Max steps | 2,000 |
+| Max steps | 1,000 |
 | Learning rate | 1e-5 (cosine) |
 | GPU | H100 80GB |
 | HF Repo | [SeifElden2342532/Harmony_Parler_TTS](https://huggingface.co/SeifElden2342532/Harmony_Parler_TTS) |

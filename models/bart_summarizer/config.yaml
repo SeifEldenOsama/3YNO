@@ -14,13 +14,25 @@ model:
   max_input_length:  1024
   max_target_length: 256
 
+lora:
+  rank:           16
+  alpha:          32
+  dropout:        0.05
+  target_modules:
+    - "q_proj"
+    - "v_proj"
+    - "k_proj"
+    - "out_proj"
+    - "fc1"
+    - "fc2"
+
 training:
   epochs:                 8
-  per_device_train_batch: 2
+  per_device_train_batch: 4
   per_device_eval_batch:  4
   gradient_accum_steps:   4
   gradient_checkpointing: true
-  warmup_steps:           200
+  warmup_steps:           100
   weight_decay:           0.01
   logging_steps:          5
   save_total_limit:       3
@@ -34,7 +46,7 @@ inference:
   output_dir: "./outputs/inference"
 
 output:
-  dir:         "/vol/bart-summarizer-output"
+  dir:         "/vol/bart-lora-output"
   local_dir:   "./outputs/model"
   logging_dir: "/vol/logs"
 
@@ -42,7 +54,7 @@ hub:
   push_to_hub:    true
   repo_id:        "SeifElden2342532/children_educational_summarizer"
   private:        false
-  commit_message: "Upload fine-tuned BART summarizer"
+  commit_message: "Upload BART LoRA summarizer"
 
 modal:
   volume_name:    "led-summarizer-vol"

@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import torch
 from transformers import AutoTokenizer, BartForConditionalGeneration
+from peft import PeftModel
 from src.config import Config
 
 
@@ -15,11 +16,15 @@ class BARTSummarizerInference:
         self.device     = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def load(self):
-        print(f"Loading model from: {self.model_path}")
+        print(f"Loading LoRA model from: {self.model_path}")
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
-        self.model     = BartForConditionalGeneration.from_pretrained(
-            self.model_path
+
+        base = BartForConditionalGeneration.from_pretrained(
+            self.cfg.model.checkpoint
         ).to(self.device)
+
+        self.model = PeftModel.from_pretrained(base, self.model_path)
+        self.model = self.model.merge_and_unload()
         self.model.eval()
 
     def summarize(self, text: str) -> str:
@@ -53,7 +58,7 @@ class BARTSummarizerInference:
 
     def summarize_csv(self, csv_path: str, output_path: str | None = None) -> str:
         import pandas as pd
-        df = pd.read_csv(csv_path)
+        df  = pd.read_csv(csv_path)
         col = self.cfg.dataset.article_col
         df["generated_summary"] = df[col].apply(self.summarize)
 

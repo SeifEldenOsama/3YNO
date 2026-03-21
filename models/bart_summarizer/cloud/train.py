@@ -9,7 +9,7 @@ TIMEOUT        = 86400
 PYTHON_VERSION = "3.11"
 TORCH_VERSION  = "2.6.0"
 CUDA_VERSION   = "cu124"
-OUTPUT_DIR     = "/vol/bart-summarizer-output"
+OUTPUT_DIR     = "/vol/bart-lora-output"
 CSV_REMOTE     = "/vol/data_summarization.csv"
 
 HF_TOKEN = os.getenv("HF_TOKEN", "")
@@ -30,6 +30,7 @@ image = (
         "accelerate>=0.33.0",
         "evaluate>=0.4.0",
         "rouge_score",
+        "peft>=0.11.0",
         "huggingface_hub>=0.24.0",
         "safetensors>=0.4.0",
         "sentencepiece",

@@ -12,6 +12,7 @@ from transformers import (
     Seq2SeqTrainingArguments,
     TrainerCallback,
 )
+from peft import LoraConfig, get_peft_model, TaskType
 import evaluate
 from src.config import Config
 from src.dataset import load_and_split, tokenize_dataset
@@ -66,6 +67,7 @@ class BARTSummarizerTrainer:
 
         t   = self.cfg.training
         m   = self.cfg.model
+        lc  = self.cfg.lora
         cfg = self.cfg
         cfg.dataset.csv_path = self.csv_path
 
@@ -76,6 +78,18 @@ class BARTSummarizerTrainer:
 
         tokenizer = AutoTokenizer.from_pretrained(m.checkpoint)
         model     = BartForConditionalGeneration.from_pretrained(m.checkpoint).to(device)
+
+        # Apply LoRA
+        lora_config = LoraConfig(
+            task_type      = TaskType.SEQ_2_SEQ_LM,
+            r              = lc.rank,
+            lora_alpha     = lc.alpha,
+            lora_dropout   = lc.dropout,
+            target_modules = lc.target_modules,
+            bias           = "none",
+        )
+        model = get_peft_model(model, lora_config)
+        model.print_trainable_parameters()
 
         raw_datasets       = load_and_split(cfg)
         tokenized_datasets = tokenize_dataset(raw_datasets, tokenizer, cfg)
@@ -120,10 +134,11 @@ class BARTSummarizerTrainer:
             callbacks        = [LossPrinterCallback()],
         )
 
-        print("Starting training...")
+        print("Starting LoRA training...")
         trainer.train()
 
-        trainer.save_model(self.output_dir)
+        # Save LoRA adapter only
+        model.save_pretrained(self.output_dir)
         tokenizer.save_pretrained(self.output_dir)
 
         print("Evaluating on test set...")
@@ -134,5 +149,5 @@ class BARTSummarizerTrainer:
         if self.volume:
             self.volume.commit()
 
-        print(f"Training complete. Model saved to: {self.output_dir}")
+        print(f"Training complete. LoRA adapter saved to: {self.output_dir}")
         return test_results

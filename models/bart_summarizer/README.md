@@ -1,6 +1,6 @@
 # BART Summarizer
 
-Full fine-tuning of [facebook/bart-large-cnn](https://huggingface.co/facebook/bart-large-cnn) for abstractive summarization of educational lesson texts, trained on Modal cloud (H100).
+LoRA fine-tuning of [facebook/bart-large-cnn](https://huggingface.co/facebook/bart-large-cnn) for abstractive summarization of educational lesson texts, trained on Modal cloud (H100).
 
 ---
 
@@ -18,7 +18,7 @@ led_summarizer/
 ├── src/
 │   ├── config.py        ← config loader
 │   ├── dataset.py       ← CSV loading + tokenization
-│   ├── trainer.py       ← BART training loop
+│   ├── trainer.py       ← LoRA training loop
 │   ├── inference.py     ← summarization inference
 │   └── uploader.py      ← HF Hub upload/download
 │
@@ -71,7 +71,7 @@ modal run cloud/inference.py --text "your lesson text here"
 ```
 
 ```bash
-modal volume get led-summarizer-vol bart-summarizer-output ./outputs/model
+modal volume get led-summarizer-vol bart-lora-output ./outputs/model
 ```
 
 ---
@@ -106,6 +106,7 @@ python scripts/upload.py --path ./outputs/model
 |---|---|
 | `dataset` | CSV path, column names, splits |
 | `model` | Base model, max input/output length |
+| `lora` | LoRA rank, alpha, dropout, target modules |
 | `training` | Epochs, batch size, learning rate |
 | `inference` | Beam size, max length |
 | `hub` | HF repo, private/public |
@@ -118,10 +119,13 @@ python scripts/upload.py --path ./outputs/model
 | | |
 |---|---|
 | Base model | `facebook/bart-large-cnn` |
+| Fine-tuning | LoRA (rank 16, alpha 32) |
+| Trainable params | ~5M out of 406M (~1.2%) |
 | Task | Abstractive summarization |
 | Max input | 1024 tokens |
 | Max output | 256 tokens |
 | Training | 8 epochs on H100 80GB |
+| Adapter size | ~20 MB |
 
 ---
 

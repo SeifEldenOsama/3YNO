@@ -27,27 +27,26 @@ The application follows a sophisticated multi-stage pipeline to ensure education
 
 ## Repository Structure
 
-The project is currently organized into specialized modules that handle different stages of the pipeline:
-
 | Module | Role in Pipeline | Model | Approach | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **[Summarizer](./models/bart_summarizer)** | Content Extraction & Scientific Distillation | BART-large-CNN | Fine-tuned | Active Development |
+| **[Summarizer](./models/led_summarizer)** | Content Extraction & Scientific Distillation | BART-large-CNN | LoRA fine-tuning | Active Development |
 | **[Story Generator](./models/story_generator)** | Narrative Transformation & Character Planning | Qwen2.5-32B-Instruct | Prompt Engineering | Active Development |
-| **[Character Generator](./models/flux_lora_project)** | Character & Background Image Generation | FLUX.1-dev | LoRA fine-tuned | Active Development |
-| **[Harmony TTS](./models/Harmony_TTS)** | Voice Generation for Characters | Parler-TTS-mini-v1 | Full fine-tuned | Active Development |
+| **[Character Generator](./models/flux_lora_project)** | Character & Background Image Generation | FLUX.1-dev | LoRA fine-tuning | Active Development |
+| **[Harmony TTS](./models/Harmony_TTS)** | Voice Generation for Characters | Parler-TTS-mini-v1 | Full fine-tuning | Active Development |
 
 ---
 
 ## Models
 
-### Summarizer — BART fine-tuned
+### Summarizer — BART LoRA fine-tuned
 
-Fine-tuned [facebook/bart-large-cnn](https://huggingface.co/facebook/bart-large-cnn) for abstractive summarization of educational texts.
+LoRA fine-tuning of [facebook/bart-large-cnn](https://huggingface.co/facebook/bart-large-cnn) for abstractive summarization of educational texts. Only ~1.2% of parameters are trained, making it fast to train and lightweight to deploy.
 
 | | |
 |---|---|
 | Base model | `facebook/bart-large-cnn` |
-| Approach | Full fine-tuning |
+| Approach | LoRA fine-tuning (rank 16, alpha 32) |
+| Trainable params | ~5M out of 406M (~1.2%) |
 | Dataset | Custom lesson descriptions (~2000 samples) |
 | Max input | 1024 tokens |
 | Max output | 256 tokens |
@@ -94,7 +93,7 @@ Full fine-tuning of [parler-tts/parler-tts-mini-v1](https://huggingface.co/parle
 | Base model | `parler-tts/parler-tts-mini-v1` |
 | Approach | Full fine-tuning (all weights) |
 | Dataset | `SeifElden2342532/parler-tts-dataset-format` (18,700 samples) |
-| Max steps | 1,000 |
+| Max steps | 2,000 |
 | Learning rate | 1e-5 (cosine) |
 | GPU | H100 80GB |
 | HF Repo | [SeifElden2342532/Harmony_Parler_TTS](https://huggingface.co/SeifElden2342532/Harmony_Parler_TTS) |
@@ -121,7 +120,7 @@ Refer to individual module READMEs for specific dependency installation.
 
 ## Roadmap
 
-- [x] Initial Summarization Pipeline (BART-large-CNN)
+- [x] Initial Summarization Pipeline (BART-large-CNN + LoRA)
 - [x] Narrative Generation Framework (Qwen2.5-32B — prompt engineering)
 - [x] Character & Background Image Generation (FLUX.1-dev LoRA)
 - [x] Voice Generation for each character (Harmony TTS)

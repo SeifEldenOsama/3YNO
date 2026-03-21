@@ -8,7 +8,7 @@ GPU            = "H100"
 PYTHON_VERSION = "3.11"
 TORCH_VERSION  = "2.6.0"
 CUDA_VERSION   = "cu124"
-MODEL_DIR      = "/vol/bart-summarizer-output"
+MODEL_DIR      = "/vol/bart-lora-output"
 
 HF_TOKEN = os.getenv("HF_TOKEN", "")
 
@@ -26,6 +26,7 @@ image = (
         "transformers>=4.44.0",
         "accelerate>=0.33.0",
         "safetensors>=0.4.0",
+        "peft>=0.11.0",
         "sentencepiece",
         "pandas",
         "pyyaml",

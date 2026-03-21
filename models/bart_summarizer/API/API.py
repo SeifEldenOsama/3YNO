@@ -28,25 +28,41 @@ class Summarizer:
 
     @modal.enter()
     def load(self):
-        from transformers import pipeline
+        from transformers import AutoTokenizer, BartForConditionalGeneration
         import os
 
         os.environ["HF_HUB_CACHE"] = "/cache"
 
-        self.pipe = pipeline(
-            "summarization",
-            model="SeifElden2342532/children_educational_summarizer",
-            device=0
-        )
+        MODEL_NAME = "SeifElden2342532/children_educational_summarizer"
+
+        self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+        self.model = BartForConditionalGeneration.from_pretrained(MODEL_NAME).to("cuda")
+        self.model.eval()
 
     @modal.fastapi_endpoint(method="POST", docs=True)
     def process(self, query: Query):
-        result = self.pipe(
-            query.text,
-            max_length=130,
-            min_length=50,
-            truncation=True,
-            do_sample=False
-        )[0]
+        import torch
 
-        return {"summary": result["summary_text"]}
+        inputs = self.tokenizer(
+            query.text,
+            max_length=1024,
+            truncation=True,
+            padding="max_length",
+            return_tensors="pt"
+        ).to("cuda")
+
+        with torch.no_grad():
+            summary_ids = self.model.generate(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+                num_beams=4,
+                max_length=256,
+                early_stopping=True
+            )
+
+        summary = self.tokenizer.decode(
+            summary_ids[0],
+            skip_special_tokens=True
+        )
+
+        return {"summary": summary}

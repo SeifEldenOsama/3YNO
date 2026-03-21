@@ -2,7 +2,7 @@ import argparse, sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from src.config import load_config
-from src.trainer import LEDSummarizerTrainer
+from src.trainer import BARTSummarizerTrainer
 
 
 def parse_args():
@@ -22,7 +22,7 @@ def main():
     if args.output: cfg.output.local_dir = args.output
     csv = args.csv or cfg.dataset.csv_path
 
-    trainer = LEDSummarizerTrainer(
+    trainer = BARTSummarizerTrainer(
         cfg        = cfg,
         csv_path   = csv,
         output_dir = cfg.output.local_dir,

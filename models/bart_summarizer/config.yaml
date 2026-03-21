@@ -1,0 +1,53 @@
+credentials:
+  hf_token: ""
+
+dataset:
+  csv_path:      "data_summarization.csv"
+  article_col:   "lesson_text"
+  summary_col:   "summary"
+  test_size:     100
+  val_ratio:     0.1
+  seed:          42
+
+model:
+  checkpoint:        "facebook/bart-large-cnn"
+  max_input_length:  1024
+  max_target_length: 256
+
+training:
+  epochs:                 8
+  per_device_train_batch: 2
+  per_device_eval_batch:  4
+  gradient_accum_steps:   4
+  gradient_checkpointing: true
+  warmup_steps:           200
+  weight_decay:           0.01
+  logging_steps:          5
+  save_total_limit:       3
+  generation_max_length:  256
+  seed:                   42
+  fp16:                   true
+
+inference:
+  num_beams:  4
+  max_length: 256
+  output_dir: "./outputs/inference"
+
+output:
+  dir:         "/vol/bart-summarizer-output"
+  local_dir:   "./outputs/model"
+  logging_dir: "/vol/logs"
+
+hub:
+  push_to_hub:    true
+  repo_id:        "SeifElden2342532/children_educational_summarizer"
+  private:        false
+  commit_message: "Upload fine-tuned BART summarizer"
+
+modal:
+  volume_name:    "led-summarizer-vol"
+  gpu:            "H100"
+  timeout:        86400
+  python_version: "3.11"
+  torch_version:  "2.6.0"
+  cuda_version:   "cu124"

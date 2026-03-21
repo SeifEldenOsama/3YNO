@@ -1,6 +1,8 @@
+# Secrets
 .env
 .env.local
 
+# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -9,6 +11,7 @@ build/
 .venv/
 venv/
 
+# Model weights (upload to HF, not GitHub)
 outputs/
 *.bin
 *.pt
@@ -17,15 +20,23 @@ outputs/
 *.pkl
 pytorch_model*
 
+# Data
+*.csv
+/data/
+
+# Logs
 logs/
 runs/
 *.log
 
+# IDE
 .vscode/
 .idea/
 .DS_Store
 
+# Modal
 .modal/
 
+# Jupyter
 .ipynb_checkpoints/
 *.ipynb

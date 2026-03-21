@@ -19,6 +19,7 @@ def load_and_split(cfg: Config) -> DatasetDict:
     print(f"Dataset size: {len(df)}")
 
     test_size = min(cfg.dataset.test_size, int(len(df) * 0.15))
+    print(f"Test size: {test_size}")
 
     dataset = Dataset.from_pandas(df)
     train_test = dataset.train_test_split(
@@ -49,14 +50,12 @@ def tokenize_dataset(dataset: DatasetDict, tokenizer: AutoTokenizer,
             truncation=True,
             padding="max_length",
         )
-
         labels = tokenizer(
             text_target=examples["summary"],
             max_length=cfg.model.max_target_length,
             truncation=True,
             padding="max_length",
         )
-
         labels["input_ids"] = [
             [(t if t != tokenizer.pad_token_id else -100) for t in seq]
             for seq in labels["input_ids"]
@@ -64,18 +63,10 @@ def tokenize_dataset(dataset: DatasetDict, tokenizer: AutoTokenizer,
         model_inputs["labels"] = labels["input_ids"]
         return model_inputs
 
-    def add_global_attention(batch):
-        batch["global_attention_mask"] = [
-            [1] + [0] * (len(ids) - 1)
-            for ids in batch["input_ids"]
-        ]
-        return batch
-
     tokenized = dataset.map(
         preprocess,
         batched=True,
         remove_columns=dataset["train"].column_names,
     )
-    tokenized = tokenized.map(add_global_attention, batched=True)
     print(tokenized)
     return tokenized

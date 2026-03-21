@@ -9,7 +9,7 @@ TIMEOUT        = 86400
 PYTHON_VERSION = "3.11"
 TORCH_VERSION  = "2.6.0"
 CUDA_VERSION   = "cu124"
-OUTPUT_DIR     = "/vol/led-summarizer-output"
+OUTPUT_DIR     = "/vol/bart-summarizer-output"
 CSV_REMOTE     = "/vol/data_summarization.csv"
 
 HF_TOKEN = os.getenv("HF_TOKEN", "")
@@ -43,7 +43,7 @@ image = (
     .add_local_file(".env",        remote_path="/root/project/.env")
 )
 
-app = modal.App("led-summarizer", image=image)
+app = modal.App("bart-summarizer", image=image)
 
 
 @app.function(
@@ -57,12 +57,12 @@ def train_remote():
     sys.path.insert(0, "/root/project")
 
     from src.config import load_config
-    from src.trainer import LEDSummarizerTrainer
+    from src.trainer import BARTSummarizerTrainer
 
     cfg = load_config("/root/project/config.yaml")
     cfg.output.dir = OUTPUT_DIR
 
-    trainer = LEDSummarizerTrainer(
+    trainer = BARTSummarizerTrainer(
         cfg        = cfg,
         csv_path   = CSV_REMOTE,
         output_dir = OUTPUT_DIR,

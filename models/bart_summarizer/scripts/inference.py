@@ -2,7 +2,7 @@ import argparse, sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from src.config import load_config
-from src.inference import LEDSummarizerInference
+from src.inference import BARTSummarizerInference
 
 
 def parse_args():
@@ -18,7 +18,7 @@ def parse_args():
 def main():
     args   = parse_args()
     cfg    = load_config(args.config)
-    runner = LEDSummarizerInference(cfg, model_path=args.model_path)
+    runner = BARTSummarizerInference(cfg, model_path=args.model_path)
 
     if args.csv:
         runner.summarize_csv(args.csv, output_path=args.output)

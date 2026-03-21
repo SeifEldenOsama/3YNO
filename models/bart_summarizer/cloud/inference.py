@@ -4,11 +4,11 @@ from dotenv import load_dotenv
 load_dotenv(".env")
 
 VOLUME_NAME    = "led-summarizer-vol"
-GPU            = "A100"
+GPU            = "H100"
 PYTHON_VERSION = "3.11"
-TORCH_VERSION  = "2.5.1"
+TORCH_VERSION  = "2.6.0"
 CUDA_VERSION   = "cu124"
-MODEL_DIR      = "/vol/led-summarizer-output"
+MODEL_DIR      = "/vol/bart-summarizer-output"
 
 HF_TOKEN = os.getenv("HF_TOKEN", "")
 
@@ -36,7 +36,7 @@ image = (
     .add_local_file(".env",        remote_path="/root/project/.env")
 )
 
-app = modal.App("led-summarizer", image=image)
+app = modal.App("bart-summarizer", image=image)
 
 
 @app.function(
@@ -50,10 +50,10 @@ def summarize_remote(text: str) -> str:
     sys.path.insert(0, "/root/project")
 
     from src.config import load_config
-    from src.inference import LEDSummarizerInference
+    from src.inference import BARTSummarizerInference
 
     cfg    = load_config("/root/project/config.yaml")
-    runner = LEDSummarizerInference(cfg, model_path=MODEL_DIR)
+    runner = BARTSummarizerInference(cfg, model_path=MODEL_DIR)
     return runner.summarize(text)
 
 

@@ -6,8 +6,8 @@ import numpy as np
 import torch
 from transformers import (
     AutoTokenizer,
+    BartForConditionalGeneration,
     DataCollatorForSeq2Seq,
-    LEDForConditionalGeneration,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     TrainerCallback,
@@ -45,7 +45,7 @@ def build_compute_metrics(tokenizer):
     return compute_metrics
 
 
-class LEDSummarizerTrainer:
+class BARTSummarizerTrainer:
     def __init__(self, cfg: Config, csv_path: str, output_dir: str, volume=None):
         self.cfg        = cfg
         self.csv_path   = csv_path
@@ -75,7 +75,7 @@ class LEDSummarizerTrainer:
             print(f"GPU: {torch.cuda.get_device_name(0)}")
 
         tokenizer = AutoTokenizer.from_pretrained(m.checkpoint)
-        model     = LEDForConditionalGeneration.from_pretrained(m.checkpoint).to(device)
+        model     = BartForConditionalGeneration.from_pretrained(m.checkpoint).to(device)
 
         raw_datasets       = load_and_split(cfg)
         tokenized_datasets = tokenize_dataset(raw_datasets, tokenizer, cfg)

@@ -1,6 +1,6 @@
-# LED Summarizer
+# BART Summarizer
 
-Fine-tuning [allenai/led-base-16384](https://huggingface.co/allenai/led-base-16384) for abstractive summarization of lesson/educational texts, trained on Modal cloud (H100).
+Full fine-tuning of [facebook/bart-large-cnn](https://huggingface.co/facebook/bart-large-cnn) for abstractive summarization of educational lesson texts, trained on Modal cloud (H100).
 
 ---
 
@@ -8,32 +8,28 @@ Fine-tuning [allenai/led-base-16384](https://huggingface.co/allenai/led-base-163
 
 ```
 led_summarizer/
-├── config.yaml              ← all settings
-├── .env                     ← credentials (never commit)
+├── config.yaml          ← all settings
+├── .env                 ← credentials (never commit)
 ├── .env.example
 ├── .gitignore
 ├── requirements.txt
 ├── Makefile
-│── data_summarization.csv
-│
-│── API/
-│   ├── API.py
 │
 ├── src/
-│   ├── config.py            ← config loader
-│   ├── dataset.py           ← CSV loading + tokenization
-│   ├── trainer.py           ← full LED training loop
-│   ├── inference.py         ← summarization inference
-│   └── uploader.py          ← HF Hub upload/download
+│   ├── config.py        ← config loader
+│   ├── dataset.py       ← CSV loading + tokenization
+│   ├── trainer.py       ← BART training loop
+│   ├── inference.py     ← summarization inference
+│   └── uploader.py      ← HF Hub upload/download
 │
 ├── cloud/
-│   ├── train.py             ← Modal training (H100)
-│   └── inference.py         ← Modal inference
+│   ├── train.py         ← Modal training (H100)
+│   └── inference.py     ← Modal inference
 │
 └── scripts/
-    ├── train.py             ← local training CLI
-    ├── inference.py         ← local inference CLI
-    └── upload.py            ← HF Hub CLI
+    ├── train.py         ← local training CLI
+    ├── inference.py     ← local inference CLI
+    └── upload.py        ← HF Hub CLI
 ```
 
 ---
@@ -57,30 +53,25 @@ HF_TOKEN=your_token_here
 
 ## Run on Modal
 
-**Authenticate Modal:**
 ```bash
 modal token set --token-id YOUR_ID --token-secret YOUR_SECRET
 ```
 
-**Upload your CSV:**
 ```bash
 modal volume create led-summarizer-vol
 modal volume put led-summarizer-vol data_summarization.csv /data_summarization.csv
 ```
 
-**Train:**
 ```bash
 modal run cloud/train.py
 ```
 
-**Inference:**
 ```bash
 modal run cloud/inference.py --text "your lesson text here"
 ```
 
-**Download model:**
 ```bash
-modal volume get led-summarizer-vol led-summarizer-output ./outputs/model
+modal volume get led-summarizer-vol bart-summarizer-output ./outputs/model
 ```
 
 ---
@@ -100,28 +91,16 @@ python scripts/inference.py --csv data.csv
 Set your repo in `config.yaml`:
 ```yaml
 hub:
-  repo_id: "your_username/led-summarizer"
+  repo_id: "your_username/bart-summarizer"
 ```
 
-Then:
 ```bash
 python scripts/upload.py --path ./outputs/model
 ```
 
 ---
 
-## Run API
-
-```bash
-modal deploy API/API.py
-```
-
----
-
-
 ## Configuration
-
-All settings are in `config.yaml`:
 
 | Section | What it controls |
 |---|---|
@@ -138,11 +117,11 @@ All settings are in `config.yaml`:
 
 | | |
 |---|---|
-| Base model | `allenai/led-base-16384` |
+| Base model | `facebook/bart-large-cnn` |
 | Task | Abstractive summarization |
 | Max input | 1024 tokens |
 | Max output | 256 tokens |
-| GPU | H100 80GB |
+| Training | 8 epochs on H100 80GB |
 
 ---
 

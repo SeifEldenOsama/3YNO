@@ -125,7 +125,7 @@ python scripts/upload.py --path ./outputs/model
 | Max input | 1024 tokens |
 | Max output | 256 tokens |
 | Training | 8 epochs on H100 80GB |
-| Adapter size | ~20 MB |
+| Adapter size | ~33 MB |
 
 ---
 

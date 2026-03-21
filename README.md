@@ -29,24 +29,25 @@ The application follows a sophisticated multi-stage pipeline to ensure education
 
 The project is currently organized into specialized modules that handle different stages of the pipeline:
 
-| Module | Role in Pipeline | Model | Status |
-| :--- | :--- | :--- | :--- |
-| **[Summarizer](./models/led_summarizer)** | Content Extraction & Scientific Distillation | LED-base-16384 (fine-tuned) | Active Development |
-| **[Story Generator](./models/story_generator)** | Narrative Transformation & Character Planning | Qwen2.5-32B-Instruct | Active Development |
-| **[Character Generator](./models/flux_lora_project)** | Character & Background Image Generation | FLUX.1-dev (LoRA fine-tuned) | Active Development |
-| **[Harmony TTS](./models/Harmony_TTS)** | Voice Generation for Characters | Parler-TTS-mini-v1 (full fine-tuned) | Active Development |
+| Module | Role in Pipeline | Model | Approach | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **[Summarizer](./models/led_summarizer)** | Content Extraction & Scientific Distillation | BART-large-CNN | Fine-tuned | Active Development |
+| **[Story Generator](./models/story_generator)** | Narrative Transformation & Character Planning | Qwen2.5-32B-Instruct | Prompt Engineering | Active Development |
+| **[Character Generator](./models/flux_lora_project)** | Character & Background Image Generation | FLUX.1-dev | LoRA fine-tuned | Active Development |
+| **[Harmony TTS](./models/Harmony_TTS)** | Voice Generation for Characters | Parler-TTS-mini-v1 | Full fine-tuned | Active Development |
 
 ---
 
 ## Models
 
-### Summarizer — LED fine-tuned
+### Summarizer — BART fine-tuned
 
-Fine-tuned [allenai/led-base-16384](https://huggingface.co/allenai/led-base-16384) for abstractive summarization of educational texts.
+Fine-tuned [facebook/bart-large-cnn](https://huggingface.co/facebook/bart-large-cnn) for abstractive summarization of educational texts.
 
 | | |
 |---|---|
-| Base model | `allenai/led-base-16384` |
+| Base model | `facebook/bart-large-cnn` |
+| Approach | Full fine-tuning |
 | Dataset | Custom lesson descriptions (~2000 samples) |
 | Max input | 1024 tokens |
 | Max output | 256 tokens |
@@ -57,11 +58,12 @@ Fine-tuned [allenai/led-base-16384](https://huggingface.co/allenai/led-base-1638
 
 ### Story Generator — Qwen2.5-32B-Instruct
 
-Fine-tuned [Qwen/Qwen2.5-32B-Instruct](https://huggingface.co/Qwen/Qwen2.5-32B-Instruct) for transforming educational lessons into structured children's stories with characters, scenes, and voice-ready scripts.
+Uses [Qwen/Qwen2.5-32B-Instruct](https://huggingface.co/Qwen/Qwen2.5-32B-Instruct) via prompt engineering to transform educational lessons into structured children's stories with characters, scenes, and voice-ready scripts. No fine-tuning required — the model follows detailed multi-stage prompts out of the box.
 
 | | |
 |---|---|
 | Base model | `Qwen/Qwen2.5-32B-Instruct` |
+| Approach | Prompt engineering (no fine-tuning) |
 | Quantization | 4-bit NF4 via `bitsandbytes` |
 | GPU | A100 80GB |
 | Cloud runtime | [Modal](https://modal.com) |
@@ -76,7 +78,7 @@ Fine-tuned [black-forest-labs/FLUX.1-dev](https://huggingface.co/black-forest-la
 | | |
 |---|---|
 | Base model | `black-forest-labs/FLUX.1-dev` |
-| Method | LoRA (rank 16, alpha 16) |
+| Approach | LoRA fine-tuning (rank 16, alpha 16) |
 | Dataset | Character descriptions (~2016 images) |
 | Training | 2000 steps on H100 80GB |
 | HF Repo | [SeifElden2342532/flux-lora-characters](https://huggingface.co/SeifElden2342532/flux-lora-characters) |
@@ -90,7 +92,7 @@ Full fine-tuning of [parler-tts/parler-tts-mini-v1](https://huggingface.co/parle
 | | |
 |---|---|
 | Base model | `parler-tts/parler-tts-mini-v1` |
-| Fine-tuning | Full fine-tuning (all weights) |
+| Approach | Full fine-tuning (all weights) |
 | Dataset | `SeifElden2342532/parler-tts-dataset-format` (18,700 samples) |
 | Max steps | 1,000 |
 | Learning rate | 1e-5 (cosine) |
@@ -119,8 +121,8 @@ Refer to individual module READMEs for specific dependency installation.
 
 ## Roadmap
 
-- [x] Initial Summarization Pipeline (LED-based)
-- [x] Narrative Generation Framework (Qwen2.5-32B)
+- [x] Initial Summarization Pipeline (BART-large-CNN)
+- [x] Narrative Generation Framework (Qwen2.5-32B — prompt engineering)
 - [x] Character & Background Image Generation (FLUX.1-dev LoRA)
 - [x] Voice Generation for each character (Harmony TTS)
 - [ ] Apply each voice generated for each character with its image, to generate small video scene for each one

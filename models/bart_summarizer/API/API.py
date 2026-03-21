@@ -4,9 +4,9 @@ from pydantic import BaseModel
 image = (
     modal.Image.debian_slim()
     .pip_install(
-        "transformers", 
-        "torch", 
-        "accelerate", 
+        "transformers",
+        "torch",
+        "accelerate",
         "fastapi[standard]"
     )
 )
@@ -19,31 +19,34 @@ class Query(BaseModel):
     text: str
 
 @app.cls(
-    gpu="L4",             
-    image=image, 
+    gpu="L4",
+    image=image,
     volumes={"/cache": volume},
     scaledown_window=300
 )
 class Summarizer:
+
     @modal.enter()
     def load(self):
         from transformers import pipeline
         import os
-        
+
         os.environ["HF_HUB_CACHE"] = "/cache"
-        
+
         self.pipe = pipeline(
-            "text-generation", 
-            model="SeifElden2342532/children_educational_summarizer", 
+            "summarization",
+            model="SeifElden2342532/children_educational_summarizer",
             device=0
         )
 
-    @modal.fastapi_endpoint(method="POST", docs = True)
+    @modal.fastapi_endpoint(method="POST", docs=True)
     def process(self, query: Query):
         result = self.pipe(
-            query.text, 
-            max_new_tokens=150, 
-            truncation=True
+            query.text,
+            max_length=130,
+            min_length=50,
+            truncation=True,
+            do_sample=False
         )[0]
-        
-        return {"summary": result["generated_text"]}
+
+        return {"summary": result["summary_text"]}

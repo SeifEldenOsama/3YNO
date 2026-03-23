@@ -56,8 +56,8 @@ def save_all(result: dict, out_dir: str = "outputs"):
     os.makedirs(os.path.join(out_dir, "assets", "backgrounds"), exist_ok=True)
     os.makedirs(os.path.join(out_dir, "scenes"),                exist_ok=True)
 
-    all_shots     = []
-    global_order  = 0
+    all_shots    = []
+    global_order = 0
 
     for scene in scripts:
         sn        = scene["scene_number"]
@@ -68,11 +68,15 @@ def save_all(result: dict, out_dir: str = "outputs"):
 
         for i, line in enumerate(scene["script"], 1):
             global_order += 1
-            speaker  = line.get("speaker", "")
-            text     = line.get("text", "")
-            is_last  = (i == n_lines)
-            shot_rel = f"scenes/{sf}/shots/shot_{i:02d}_{speaker}"
-            position = scene_pos.get(speaker, {})
+            speaker   = line.get("speaker", "")
+            text      = line.get("text", "")
+            is_first  = (i == 1)
+            is_last   = (i == n_lines)
+            shot_rel  = f"scenes/{sf}/shots/shot_{i:02d}_{speaker}"
+            prev_shot = (
+                f"scenes/{sf}/shots/shot_{i-1:02d}_{scene['script'][i-2].get('speaker','')}/clip.mp4"
+                if i > 1 else None
+            )
 
             all_shots.append({
                 "order":             global_order,
@@ -80,10 +84,12 @@ def save_all(result: dict, out_dir: str = "outputs"):
                 "scene_number":      sn,
                 "scene_title":       scene["title"],
                 "shot_number":       i,
+                "is_first_in_scene": is_first,
+                "is_last_in_scene":  is_last,
                 "background_name":   bg_name,
                 "background_image":  f"assets/backgrounds/{bg_name}.png",
                 "speaker":           speaker,
-                "speaker_position":  position,
+                "speaker_position":  scene_pos.get(speaker, {}),
                 "speaker_image":     f"assets/characters/{speaker}.png",
                 "text":              text,
                 "voice_description": line.get("voice_description", ""),
@@ -92,14 +98,55 @@ def save_all(result: dict, out_dir: str = "outputs"):
                 "voice_file":  f"{shot_rel}/voice.mp3",
                 "frame_file":  f"{shot_rel}/frame.png",
                 "clip_file":   f"{shot_rel}/clip.mp4",
-                "is_last_in_scene": is_last,
+                "frame_source":   "composite" if is_first else "previous_clip",
+                "previous_clip":  prev_shot,
                 "transition_hint": (
-                    "capture last frame of this clip as seed for next scene"
-                    if is_last else None
+                    None
+                    if is_first
+                    else "extract last frame of previous clip → use as frame.png"
                 ),
             })
 
+    frames_to_composite = []
+    frames_from_clip    = []
+
+    for s in all_shots:
+        if s["frame_source"] == "composite":
+            frames_to_composite.append({
+                "order":            s["order"],
+                "shot_id":          s["shot_id"],
+                "background_image": s["background_image"],
+                "characters": [
+                    {
+                        "name":       name,
+                        "image_file": f"assets/characters/{name}.png",
+                        "position":   _scene_positions(
+                                          scripts[s["scene_number"] - 1]
+                                      ).get(name, {}),
+                    }
+                    for name in _char_names(scripts[s["scene_number"] - 1])
+                    if name in char_lookup
+                ],
+                "output_file": s["frame_file"],
+            })
+        else:
+            frames_from_clip.append({
+                "order":         s["order"],
+                "shot_id":       s["shot_id"],
+                "previous_clip": s["previous_clip"],
+                "instruction":   "extract last frame of previous_clip → save as output_file",
+                "output_file":   s["frame_file"],
+            })
+
     manifest = {
+        "_description": (
+            "Step 1: generate character PNGs. "
+            "Step 2: generate background PNGs. "
+            "Step 3: generate voice MP3s. "
+            "Step 4a: composite frame.png for shot 1 of each scene (frames_to_composite). "
+            "Step 4b: for all other shots, extract the last frame of the previous clip (frames_from_clip). "
+            "Step 5: run LTX-2 video generation per shot using frame.png + voice.mp3."
+        ),
         "characters_to_generate": [
             {
                 "name":              c["name"],
@@ -132,30 +179,18 @@ def save_all(result: dict, out_dir: str = "outputs"):
             }
             for s in all_shots
         ],
-        "frames_to_composite": [
-            {
-                "order":            s["order"],
-                "shot_id":          s["shot_id"],
-                "background_image": s["background_image"],
-                "characters": [
-                    {
-                        "name":       name,
-                        "image_file": f"assets/characters/{name}.png",
-                        "position":   _scene_positions(
-                                          scripts[s["scene_number"] - 1]
-                                      ).get(name, {}),
-                    }
-                    for name in _char_names(scripts[s["scene_number"] - 1])
-                    if name in char_lookup
-                ],
-                "output_file": s["frame_file"],
-            }
-            for s in all_shots
-        ],
+        "frames_to_composite": frames_to_composite,
+        "frames_from_clip":    frames_from_clip,
     }
     _write(out_dir, "00_generation_manifest.json", manifest)
 
     _write(out_dir, "video_timeline.json", {
+        "_description": (
+            "Flat ordered shot list. For each shot: "
+            "if frame_source=composite → run frames_to_composite step. "
+            "if frame_source=previous_clip → extract last frame of previous_clip into frame_file. "
+            "Then run LTX-2 with frame_file + voice_file."
+        ),
         "total_scenes": len(scripts),
         "total_shots":  len(all_shots),
         "shots":        all_shots,
@@ -163,9 +198,9 @@ def save_all(result: dict, out_dir: str = "outputs"):
 
     story_scenes = []
     for scene in scripts:
-        sn        = scene["scene_number"]
-        bg_name   = scene["background"]
-        bg_data   = bg_lookup.get(bg_name, {})
+        sn          = scene["scene_number"]
+        bg_name     = scene["background"]
+        bg_data     = bg_lookup.get(bg_name, {})
         scene_shots = [s for s in all_shots if s["scene_number"] == sn]
         scene_pos   = _scene_positions(scene)
 
@@ -238,12 +273,13 @@ def save_all(result: dict, out_dir: str = "outputs"):
             loc      = scene_pos.get(speaker, {})
             shot_dir = os.path.join(shots_dir, f"shot_{i:02d}_{speaker}")
             os.makedirs(shot_dir, exist_ok=True)
+            is_first = (i == 1)
 
             with open(os.path.join(shot_dir, "prompt.txt"), "w", encoding="utf-8") as f:
-                f.write(f"SHOT ID   : s{sn:02d}_shot{i:02d}\n")
-                f.write(f"SCENE     : {scene['title']}\n")
-                f.write(f"BACKGROUND: {bg_name}\n")
-                f.write(f"SPEAKER   : {speaker} (x={loc.get('x','?')}, y={loc.get('y','?')})\n")
+                f.write(f"SHOT ID      : s{sn:02d}_shot{i:02d}\n")
+                f.write(f"SCENE        : {scene['title']}\n")
+                f.write(f"SPEAKER      : {speaker} (x={loc.get('x','?')}, y={loc.get('y','?')})\n")
+                f.write(f"FRAME SOURCE : {'composite background + characters' if is_first else 'last frame of previous clip'}\n")
                 f.write(f"\nVIDEO PROMPT:\n{line.get('video_prompt', '')}\n")
 
             with open(os.path.join(shot_dir, "voice.txt"), "w", encoding="utf-8") as f:

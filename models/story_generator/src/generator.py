@@ -1,6 +1,82 @@
 from __future__ import annotations
 import json
 import re
+import random
+
+VOICE_TEMPLATES = [
+    "A {gender} speaker delivers a {style} explanation in a clear teaching voice.",
+    "This recording features a {gender} voice with a {style} speaking style.",
+    "A {style} narration presented by a {gender} teacher.",
+    "A {gender} educator explains the topic using a {style} tone.",
+    "A clear and {style} explanation spoken by a {gender} voice.",
+    "This audio contains a {gender} speaker using a {style} delivery.",
+    "A {style} teaching narration performed by a {gender} individual.",
+    "A professional {gender} voice speaking in a {style} manner.",
+    "A calm and informative {style} explanation from a {gender} speaker.",
+    "A {gender} teacher presents the topic with a {style} approach.",
+    "A {style} educational explanation delivered by a {gender} voice.",
+    "A natural {gender} voice expressing a {style} teaching style.",
+    "A {gender} narrator speaks with a {style} tone for learning purposes.",
+    "A friendly {style} explanation provided by a {gender} speaker.",
+    "A focused {style} teaching voice from a {gender} educator.",
+    "This sample includes a {gender} voice using a {style} narration style.",
+    "A structured {style} explanation spoken by a {gender} teacher.",
+    "A {gender} speaker communicates the lesson in a {style} way.",
+    "An educational {style} narration performed by a {gender} voice.",
+    "A confident {gender} speaker delivering a {style} explanation.",
+    "A simple and {style} teaching narration from a {gender} educator.",
+    "A {gender} instructional voice with a {style} expression.",
+    "A clear {style} lesson explained by a {gender} speaker.",
+    "A composed {gender} voice presenting content in a {style} tone.",
+    "A {style} learning-focused narration by a {gender} teacher.",
+    "A professional educational explanation in a {style} voice by a {gender} speaker.",
+    "A {gender} speaker delivers knowledge using a {style} teaching tone.",
+    "A smooth and {style} explanation spoken by a {gender} voice.",
+    "A {style} classroom-style narration from a {gender} educator.",
+    "A direct and {style} explanation presented by a {gender} speaker.",
+    "An engaging {style} presentation given by a {gender} instructor.",
+    "A {gender} narrator provides a {style} breakdown of the subject matter.",
+    "The {gender} voice offers a {style} and academic delivery.",
+    "A precise {style} lecture spoken by a {gender} academic.",
+    "In a {style} manner, the {gender} speaker guides the listener through the topic.",
+    "A highly articulate {gender} voice performing a {style} narration.",
+    "The {style} quality of this {gender} speaker is perfect for educational content.",
+    "A {gender} speaker uses an authoritative yet {style} tone.",
+    "This {style} tutorial is narrated by a steady {gender} voice.",
+    "A warm {gender} speaker provides a {style} instructional overview.",
+    "The audio showcases a {gender} voice with a distinct {style} cadence.",
+    "An articulate {style} explanation by a {gender} voice actor.",
+    "A {gender} speaker adopts a {style} persona for this educational clip.",
+    "This {style} delivery is performed by a clear-spoken {gender} individual.",
+    "A {style} and methodical explanation from a {gender} speaker.",
+    "The {gender} educator uses a {style} rhythm throughout the recording.",
+    "A well-paced {style} narration delivered by a {gender} voice.",
+    "A {gender} voice guides the lesson with a {style} and clear approach.",
+    "The recording captures a {gender} speaker in a {style} teaching moment.",
+    "A {style} and expressive {gender} voice recounts the educational material.",
+    "This {gender} speaker provides a consistent {style} flow for learning.",
+    "A balanced {style} tone is used by the {gender} narrator here.",
+    "An insightful {style} explanation spoken by a {gender} specialist.",
+    "The {gender} speaker maintains a {style} presence throughout the audio.",
+    "A clear-cut {style} teaching style from a {gender} professional.",
+    "This {gender} voice sounds both helpful and {style} in its delivery.",
+    "A {style} pedagogical narration by a {gender} speaker.",
+    "The {gender} speaker conveys complex ideas in a {style} tone.",
+    "A rhythmic and {style} explanation given by a {gender} voice.",
+    "This {style} auditory lesson is presented by a {gender} teacher.",
+]
+
+
+def _apply_voice_template(voice_description: str) -> str:
+    """Convert 'female, cheerful' → random template filled with gender + style."""
+    try:
+        parts  = [p.strip() for p in voice_description.split(",")]
+        gender = parts[0]
+        style  = parts[1]
+        return random.choice(VOICE_TEMPLATES).format(gender=gender, style=style)
+    except Exception:
+        return voice_description
+
 
 
 class StoryGenerator:
@@ -426,6 +502,14 @@ Return ONLY the JSON array."""
 
             lines = self._ask_json(prompt, max_new_tokens=5000, temperature=0.4)
             lines = self._filter_voice_lines(lines, char_names_list)
+
+            # Apply random voice template to each line's voice_description
+            for line in lines:
+                if "voice_description" in line and line["voice_description"]:
+                    line["voice_description"] = _apply_voice_template(
+                        line["voice_description"]
+                    )
+
             all_scripts.append({
                 "scene_number":       sp['scene_number'],
                 "title":              sp['title'],

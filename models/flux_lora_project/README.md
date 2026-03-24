@@ -102,6 +102,14 @@ python scripts/upload.py
 
 ---
 
+## 8. Run API
+
+```bash
+modal deploy API/API.py
+```
+
+---
+
 ## 🎛️ Configuration
 
 All settings live in `config.yaml`. Key sections:

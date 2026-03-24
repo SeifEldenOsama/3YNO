@@ -93,6 +93,14 @@ python scripts/upload.py --path ./outputs/model
 
 ---
 
+## Run API
+
+```bash
+modal deploy API/API.py
+```
+
+---
+
 ## Configuration
 
 | Section | What it controls |

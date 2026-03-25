@@ -168,6 +168,16 @@ modal:
 
 ---
 
+
+## Run API
+
+```bash
+modal deploy API/API.py
+```
+
+---
+
+
 ## Output Files
 
 | File | Description |

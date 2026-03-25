@@ -1,6 +1,5 @@
 import modal
 import os
-import json
 import shutil
 import tempfile
 from pydantic import BaseModel
@@ -12,6 +11,8 @@ TIMEOUT        = 3600
 PYTHON_VERSION = "3.11"
 MODEL_ID       = "Qwen/Qwen2.5-32B-Instruct"
 CACHE_DIR      = "/model-cache"
+
+HF_TOKEN = "YOUR TOKEN HERE"
 
 volume = modal.Volume.from_name(VOLUME_NAME, create_if_missing=True)
 
@@ -29,21 +30,24 @@ image = (
         "fastapi[standard]",
         "pydantic",
     )
-    .add_local_dir("src", remote_path="/root/project/src")
+    .add_local_dir("src",          remote_path="/root/project/src")
     .add_local_file("config.yaml", remote_path="/root/project/config.yaml")
+    .add_local_file(".env",        remote_path="/root/project/.env")
 )
 
 app = modal.App("kids-story-generator-api", image=image)
 
+
 class Query(BaseModel):
     lesson: str
+
 
 @app.cls(
     gpu=GPU,
     timeout=TIMEOUT,
     volumes={CACHE_DIR: volume},
     scaledown_window=300,
-    secrets=[modal.Secret.from_name("HF_TOKEN")],
+    secrets=[modal.Secret.from_dict({"HF_TOKEN": HF_TOKEN})],
 )
 class StoryGeneratorAPI:
 
@@ -51,6 +55,7 @@ class StoryGeneratorAPI:
     def load_model(self):
         import sys
         sys.path.insert(0, "/root/project")
+
         from src.generator import StoryGenerator
         self.gen = StoryGenerator()
         self.gen.load_model(
@@ -64,6 +69,8 @@ class StoryGeneratorAPI:
     def generate(self, query: Query):
         import sys
         sys.path.insert(0, "/root/project")
+
+        from src.save_outputs import save_all
 
         lesson = query.lesson.strip()
         if not lesson:
@@ -97,67 +104,31 @@ class StoryGeneratorAPI:
         print("Stage 4/4 — Generating voice scripts...", flush=True)
         scripts = gen.generate_voice_scripts(passages, characters)
 
-        print("Stage 5/5 — Organizing files and zipping...", flush=True)
-        
-        temp_dir = tempfile.mkdtemp()
-        story_name = lesson.replace(" ", "_")[:30]
-        base_path = os.path.join(temp_dir, story_name)
-        os.makedirs(base_path)
-
-        full_data = {
-            "lesson": lesson,
-            "lesson_steps": lesson_steps,
-            "characters": characters,
-            "backgrounds": backgrounds,
-            "outline": outline,
+        result = {
+            "lesson":         lesson,
+            "lesson_steps":   lesson_steps,
+            "characters":     characters,
+            "backgrounds":    backgrounds,
+            "outline":        outline,
             "story_passages": passages,
-            "voice_scripts": scripts,
+            "voice_scripts":  scripts,
         }
-        with open(os.path.join(base_path, "story_index.json"), "w") as f:
-            json.dump(full_data, f, indent=2)
 
-        assets_dir = os.path.join(base_path, "assets")
-        os.makedirs(os.path.join(assets_dir, "characters"), exist_ok=True)
-        os.makedirs(os.path.join(assets_dir, "backgrounds"), exist_ok=True)
-        
-        with open(os.path.join(assets_dir, "characters", "characters.json"), "w") as f:
-            json.dump(characters, f, indent=2)
-        with open(os.path.join(assets_dir, "backgrounds", "backgrounds.json"), "w") as f:
-            json.dump(backgrounds, f, indent=2)
+        print("Saving output files...", flush=True)
+        temp_dir = tempfile.mkdtemp()
+        out_dir  = os.path.join(temp_dir, "story_output")
+        os.makedirs(out_dir, exist_ok=True)
 
-        scenes_dir = os.path.join(base_path, "scenes")
-        scripts_by_scene = {s['scene_number']: s['script'] for s in scripts}
-        
-        for scene in outline:
-            scene_num = scene['scene_number']
-            scene_title = scene['title'].replace(" ", "_").replace("'", "")
-            scene_path = os.path.join(scenes_dir, f"scene_{scene_num:02d}_{scene_title}")
-            shots_path = os.path.join(scene_path, "shots")
-            os.makedirs(shots_path, exist_ok=True)
-            
-            with open(os.path.join(scene_path, "scene.json"), "w") as f:
-                json.dump(scene, f, indent=2)
-                
-            scene_script = scripts_by_scene.get(scene_num, [])
-            for i, shot in enumerate(scene_script, 1):
-                shot_name = f"shot_{i:02d}_{shot['speaker']}"
-                shot_path = os.path.join(shots_path, shot_name)
-                os.makedirs(shot_path, exist_ok=True)
-                
-                with open(os.path.join(shot_path, "voice.txt"), "w") as f:
-                    f.write(shot['text'])
-                with open(os.path.join(shot_path, "prompt.txt"), "w") as f:
-                    f.write(shot['video_prompt'])
-                with open(os.path.join(shot_path, "metadata.json"), "w") as f:
-                    json.dump(shot, f, indent=2)
+        save_all(result, out_dir=out_dir)
 
-        zip_path = os.path.join(temp_dir, f"{story_name}.zip")
-        shutil.make_archive(os.path.join(temp_dir, story_name), 'zip', base_path)
+        story_name = lesson.strip().replace(" ", "_")[:30]
+        zip_path   = os.path.join(temp_dir, story_name)
+        shutil.make_archive(zip_path, "zip", out_dir)
 
         print("Done!", flush=True)
 
         return FileResponse(
-            path=zip_path,
-            filename=f"{story_name}.zip",
-            media_type="application/zip"
+            path       = zip_path + ".zip",
+            filename   = f"{story_name}.zip",
+            media_type = "application/zip",
         )

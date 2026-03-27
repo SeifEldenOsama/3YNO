@@ -4,6 +4,9 @@ import shutil
 import tempfile
 from pydantic import BaseModel
 from fastapi.responses import FileResponse
+from dotenv import load_dotenv
+
+load_dotenv()
 
 VOLUME_NAME    = "story-model-cache"
 GPU            = "A100"
@@ -12,7 +15,7 @@ PYTHON_VERSION = "3.11"
 MODEL_ID       = "Qwen/Qwen2.5-32B-Instruct"
 CACHE_DIR      = "/model-cache"
 
-HF_TOKEN = "YOUR TOKEN HERE"
+HF_TOKEN = os.environ["HF_TOKEN"]
 
 volume = modal.Volume.from_name(VOLUME_NAME, create_if_missing=True)
 

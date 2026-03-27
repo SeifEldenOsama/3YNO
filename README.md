@@ -33,6 +33,7 @@ The application follows a sophisticated multi-stage pipeline to ensure education
 | **[Story Generator](./models/story_generator)** | Narrative Transformation & Character Planning | Qwen2.5-32B-Instruct | Prompt Engineering | Active Development |
 | **[Character Generator](./models/flux_lora_project)** | Character & Background Image Generation | FLUX.1-dev | LoRA fine-tuning | Active Development |
 | **[Harmony TTS](./models/Harmony_TTS)** | Voice Generation for Characters | Parler-TTS-mini-v1 | Full fine-tuning | Active Development |
+| **[Video Generator](./models/video_generator)** | Character Video Synthesis | LTX-2-19b-distilled | Audio-to-video + Camera Control LoRA | Active Development |
 
 ---
 
@@ -84,6 +85,22 @@ Fine-tuned [black-forest-labs/FLUX.1-dev](https://huggingface.co/black-forest-la
 
 ---
 
+### Video Generator — LTX-2 Audio-to-Video
+
+Takes a character image and a voice audio clip produced by Harmony TTS, and synthesises an animated video of the character speaking. Uses [rootonchair/LTX-2-19b-distilled](https://huggingface.co/rootonchair/LTX-2-19b-distilled) with a Camera Control LoRA for stable, expressive output.
+
+| | |
+|---|---|
+| Base model | `rootonchair/LTX-2-19b-distilled` |
+| Pipeline | `multimodalart/ltx2-audio-to-video` |
+| LoRA | `Lightricks/LTX-2-19b-LoRA-Camera-Control-Static` |
+| Approach | Audio-to-video inference (no fine-tuning) |
+| GPU | H200 80GB |
+| Inference steps | 8 (distilled sigmas) |
+| Module path | [`./models/video_generator`](./models/video_generator) |
+
+---
+
 ### Harmony TTS — Parler-TTS full fine-tuned
 
 Full fine-tuning of [parler-tts/parler-tts-mini-v1](https://huggingface.co/parler-tts/parler-tts-mini-v1) for generating expressive character voices in educational videos.
@@ -124,5 +141,5 @@ Refer to individual module READMEs for specific dependency installation.
 - [x] Narrative Generation Framework (Qwen2.5-32B — prompt engineering)
 - [x] Character & Background Image Generation (FLUX.1-dev LoRA)
 - [x] Voice Generation for each character (Harmony TTS)
-- [ ] Apply each voice generated for each character with its image, to generate small video scene for each one
+- [x] Apply each voice generated for each character with its image, to generate small video scene for each one
 - [ ] Integrate all the video scenes into one educational interactive video

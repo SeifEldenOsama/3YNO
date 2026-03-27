@@ -1,5 +1,9 @@
 import modal
 import io
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -19,7 +23,7 @@ app = modal.App("flux-lora-api", image=image)
 
 MODEL_ID  = "black-forest-labs/FLUX.1-dev"
 LORA_ID   = "SeifElden2342532/flux-lora-characters"
-HF_TOKEN  = "YOUR TOKEN HERE"
+HF_TOKEN  = os.environ["HF_TOKEN"]
 
 volume = modal.Volume.from_name("flux-lora-cache", create_if_missing=True)
 CACHE_DIR = "/model-cache"
@@ -30,6 +34,7 @@ CACHE_DIR = "/model-cache"
     volumes={CACHE_DIR: volume},
     timeout=600,
     scaledown_window=120,
+    secrets=[modal.Secret.from_dict({"HF_TOKEN": HF_TOKEN})],
 )
 class FluxModel:
 
@@ -39,10 +44,12 @@ class FluxModel:
         from diffusers import FluxPipeline
         from peft import PeftModel
 
+        hf_token = os.environ["HF_TOKEN"]
+
         self.pipe = FluxPipeline.from_pretrained(
             MODEL_ID,
             torch_dtype=torch.bfloat16,
-            token=HF_TOKEN,
+            token=hf_token,
             cache_dir=CACHE_DIR,
         ).to("cuda")
 
@@ -50,7 +57,7 @@ class FluxModel:
             self.pipe.transformer,
             LORA_ID,
             subfolder="flux-lora-output",
-            token=HF_TOKEN,
+            token=hf_token,
             cache_dir=CACHE_DIR,
         )
         self.pipe.transformer = self.pipe.transformer.merge_and_unload()

@@ -288,10 +288,10 @@ class VideoGenerator:
 
     def generate_pipeline(
         self,
-        shots:             list[dict],   # from video_timeline.json["shots"]
-        background_images: dict,          # {background_name: bytes}
-        character_images:  dict,          # {character_name: bytes}
-        audio_files:       dict,          # {shot_id: bytes}
+        shots:             list[dict], 
+        background_images: dict,         
+        character_images:  dict,        
+        audio_files:       dict,         
         seed:              int = 42,
     ) -> dict[str, bytes]:
         """
@@ -307,10 +307,9 @@ class VideoGenerator:
         """
         from src.compositor import composite_frame, extract_last_frame
 
-        results      = {}   # shot_id → clip_bytes
-        prev_clip    = None  # last generated clip bytes (for frame extraction)
+        results      = {}   
+        prev_clip    = None 
 
-        # Determine output size from first background
         first_bg_name  = shots[0]["background_name"]
         first_bg_bytes = background_images[first_bg_name]
         width, height  = get_resolution(first_bg_bytes)
@@ -327,16 +326,13 @@ class VideoGenerator:
             print(f"\n{'='*60}")
             print(f"Scene {scene_num} | Shot {shot_num} | {shot_id} | source={frame_source}")
 
-            # ── Build frame.png ───────────────────────────────────────────────
             if frame_source == "composite" or prev_clip is None:
-                # Shot 1 of scene (or very first shot): composite from assets
                 print("  Compositing frame from background + characters...")
 
                 bg_bytes = background_images.get(bg_name)
                 if bg_bytes is None:
                     raise ValueError(f"Background not found: {bg_name}")
 
-                # Build character list with their bytes and positions
                 chars_in_shot = []
                 for cp in shot.get("characters_present", []):
                     name     = cp["name"] if isinstance(cp, dict) else cp
@@ -359,17 +355,14 @@ class VideoGenerator:
                 print(f"  Frame composited: {len(frame_bytes)/1024:.1f} KB")
 
             else:
-                # Shot 2+ of scene: extract last frame from previous clip
                 print("  Extracting last frame from previous clip...")
                 frame_bytes = extract_last_frame(prev_clip)
                 print(f"  Last frame: {len(frame_bytes)/1024:.1f} KB")
 
-            # ── Get audio ─────────────────────────────────────────────────────
             audio_bytes = audio_files.get(shot_id)
             if audio_bytes is None:
                 raise ValueError(f"Audio not found for shot: {shot_id}")
 
-            # ── Generate clip ─────────────────────────────────────────────────
             print(f"  Generating clip for {shot_id}...")
             clip_bytes = self.generate(
                 image_bytes = frame_bytes,

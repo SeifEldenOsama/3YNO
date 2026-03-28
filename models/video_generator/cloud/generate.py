@@ -61,7 +61,6 @@ class VideoGeneratorModal:
         self.gen = VideoGenerator(cfg)
         self.gen.load_model()
 
-    # ── Single shot (original entrypoint) ────────────────────────────────────
     @modal.method()
     def generate(
         self,
@@ -80,7 +79,6 @@ class VideoGeneratorModal:
             seed        = seed,
         )
 
-    # ── Full pipeline (scenes + shots) ────────────────────────────────────────
     @modal.method()
     def generate_pipeline(
         self,
@@ -115,7 +113,6 @@ class VideoGeneratorModal:
         )
 
 
-# ── Single shot entrypoint ────────────────────────────────────────────────────
 @app.local_entrypoint()
 def main(
     image_path:  str = "test/frame.png",
@@ -166,27 +163,23 @@ def run_pipeline(
 
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    # ── Load timeline ─────────────────────────────────────────────────────────
     with open(timeline_path) as f:
         timeline = json.load(f)
     shots = timeline["shots"]
     print(f"Loaded {len(shots)} shots from {timeline_path}")
 
-    # ── Load background images ────────────────────────────────────────────────
     background_images = {}
     bg_dir = Path(assets_dir) / "assets" / "backgrounds"
     for png in bg_dir.glob("*.png"):
         background_images[png.stem] = png.read_bytes()
         print(f"Background loaded: {png.stem}")
 
-    # ── Load character images ─────────────────────────────────────────────────
     character_images = {}
     char_dir = Path(assets_dir) / "assets" / "characters"
     for png in char_dir.glob("*.png"):
         character_images[png.stem] = png.read_bytes()
         print(f"Character loaded: {png.stem}")
 
-    # ── Load audio files ──────────────────────────────────────────────────────
     audio_files = {}
     for shot in shots:
         shot_id    = shot["shot_id"]
@@ -201,7 +194,6 @@ def run_pipeline(
           f"{len(character_images)} characters | "
           f"{len(audio_files)} audio files")
 
-    # ── Run remote ────────────────────────────────────────────────────────────
     results = VideoGeneratorModal().generate_pipeline.remote(
         shots             = shots,
         background_images = background_images,
@@ -210,7 +202,6 @@ def run_pipeline(
         seed              = seed,
     )
 
-    # ── Save clips ────────────────────────────────────────────────────────────
     for shot_id, clip_bytes in results.items():
         out_path = Path(output_dir) / f"{shot_id}.mp4"
         out_path.write_bytes(clip_bytes)

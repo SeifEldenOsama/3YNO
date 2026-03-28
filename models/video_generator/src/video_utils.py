@@ -11,14 +11,12 @@ import numpy as np
 from PIL import Image, ImageOps, ImageEnhance, ImageFilter
 
 
-# ── Distilled model sigma values ──────────────────────────────────────────────
 
 DISTILLED_SIGMA_VALUES = [
     1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875
 ]
 
 
-# ── Pipeline patch ─────────────────────────────────────────────────────────────
 
 def patch_custom_pipeline():
     """
@@ -37,8 +35,6 @@ def patch_custom_pipeline():
             f.write(patched)
     print("Pipeline patched.")
 
-
-# ── Resolution helpers ─────────────────────────────────────────────────────────
 
 def get_resolution(image_bytes: bytes) -> tuple[int, int]:
     """Pick resolution matching image aspect ratio."""
@@ -63,7 +59,6 @@ def calc_num_frames(duration: float, fps: float) -> int:
     return max(num_frames, 9)
 
 
-# ── Image helpers ──────────────────────────────────────────────────────────────
 
 def prepare_image(image_bytes: bytes, width: int, height: int) -> Image.Image:
     raw = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -74,8 +69,6 @@ def prepare_image(image_bytes: bytes, width: int, height: int) -> Image.Image:
     print(f"Prepared image: {img.size}")
     return img
 
-
-# ── Audio helpers ──────────────────────────────────────────────────────────────
 
 def preprocess_audio(audio_bytes: bytes, target_sr: int = 16000) -> tuple[str, float]:
     """
@@ -105,8 +98,6 @@ def preprocess_audio(audio_bytes: bytes, target_sr: int = 16000) -> tuple[str, f
     print(f"Audio preprocessed → {out_path}")
     return out_path, duration
 
-
-# ── Frame helpers ──────────────────────────────────────────────────────────────
 
 def frames_to_video(flat_frames: list, height: int, width: int,
                     fps: float, temp_vid: str):

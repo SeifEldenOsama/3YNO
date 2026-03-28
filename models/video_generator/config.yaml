@@ -1,3 +1,7 @@
+# ─────────────────────────────────────────────
+#  Video Generator — Configuration
+# ─────────────────────────────────────────────
+
 model:
   id:          "rootonchair/LTX-2-19b-distilled"
   pipeline:    "multimodalart/ltx2-audio-to-video"
@@ -6,10 +10,23 @@ model:
   cache_dir:   "/model-cache"
 
 generation:
+  quality:          "fhd"      # sd | hd | fhd
   fps:              24.0
+  seed:             -1         # -1 = random
   num_steps:        8
   guidance_scale:   1.0
-  max_duration:     12.0
+  bright_tail:      1.6        # seconds of visible settle after audio ends
+  dark_buffer:      2.0        # extra silent seconds trimmed before delivery
 
 negative_prompt: >
-  low quality, worst quality, deformed, distorted, static, frozen, no movement
+  low quality, worst quality, deformed, distorted, blurry, noisy,
+  text, subtitles, captions, watermark, words, letters, typography,
+  moving background, camera movement, panning, zooming, shaking, parallax
+
+modal:
+  app_name:       "video-generator"
+  volume_name:    "ltx2-model-cache"
+  gpu:            "H200"
+  timeout:        7200
+  scaledown_window: 3600
+  python_version: "3.12"

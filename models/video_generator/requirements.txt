@@ -1,22 +1,21 @@
 torch==2.5.1
 torchaudio==2.5.1
 torchvision==0.20.1
-diffusers
+diffusers @ git+https://github.com/huggingface/diffusers.git
 transformers==4.52.4
 huggingface_hub[hf_transfer]
 hf_transfer
-sentencepiece
-numpy
+sentencepiece==0.2.1
+numpy==2.2.0
 pillow
 soundfile
 imageio[ffmpeg]
 accelerate
 einops
-scipy
+scipy>=1.14
 av
 moviepy
 peft
-librosa
 pyyaml
 python-dotenv
 modal

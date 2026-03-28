@@ -285,3 +285,102 @@ class VideoGenerator:
             if os.path.exists(p):
                 os.unlink(p)
         return result
+
+    def generate_pipeline(
+        self,
+        shots:             list[dict],   # from video_timeline.json["shots"]
+        background_images: dict,          # {background_name: bytes}
+        character_images:  dict,          # {character_name: bytes}
+        audio_files:       dict,          # {shot_id: bytes}
+        seed:              int = 42,
+    ) -> dict[str, bytes]:
+        """
+        Process ALL shots across ALL scenes dynamically.
+
+        For each shot:
+          - frame_source == "composite"    → composite background + characters → frame.png
+          - frame_source == "previous_clip" → extract last frame of previous clip
+
+        Then feed frame + audio into LTX-2 to generate clip.
+
+        Returns {shot_id: clip_bytes} for every shot.
+        """
+        from src.compositor import composite_frame, extract_last_frame
+
+        results      = {}   # shot_id → clip_bytes
+        prev_clip    = None  # last generated clip bytes (for frame extraction)
+
+        # Determine output size from first background
+        first_bg_name  = shots[0]["background_name"]
+        first_bg_bytes = background_images[first_bg_name]
+        width, height  = get_resolution(first_bg_bytes)
+        print(f"Output resolution: {width}x{height}")
+
+        for i, shot in enumerate(shots):
+            shot_id      = shot["shot_id"]
+            bg_name      = shot["background_name"]
+            frame_source = shot.get("frame_source", "composite")
+            prompt       = shot.get("video_prompt", None)
+            scene_num    = shot["scene_number"]
+            shot_num     = shot["shot_number"]
+
+            print(f"\n{'='*60}")
+            print(f"Scene {scene_num} | Shot {shot_num} | {shot_id} | source={frame_source}")
+
+            # ── Build frame.png ───────────────────────────────────────────────
+            if frame_source == "composite" or prev_clip is None:
+                # Shot 1 of scene (or very first shot): composite from assets
+                print("  Compositing frame from background + characters...")
+
+                bg_bytes = background_images.get(bg_name)
+                if bg_bytes is None:
+                    raise ValueError(f"Background not found: {bg_name}")
+
+                # Build character list with their bytes and positions
+                chars_in_shot = []
+                for cp in shot.get("characters_present", []):
+                    name     = cp["name"] if isinstance(cp, dict) else cp
+                    position = cp.get("position", {"x": 0.5, "y": 0.5}) if isinstance(cp, dict) else {"x": 0.5, "y": 0.5}
+                    c_bytes  = character_images.get(name)
+                    if c_bytes is None:
+                        print(f"  WARNING: Character image not found: {name}, skipping")
+                        continue
+                    chars_in_shot.append({
+                        "name":        name,
+                        "image_bytes": c_bytes,
+                        "position":    position,
+                    })
+
+                frame_bytes = composite_frame(
+                    background_bytes = bg_bytes,
+                    characters       = chars_in_shot,
+                    output_size      = (width, height),
+                )
+                print(f"  Frame composited: {len(frame_bytes)/1024:.1f} KB")
+
+            else:
+                # Shot 2+ of scene: extract last frame from previous clip
+                print("  Extracting last frame from previous clip...")
+                frame_bytes = extract_last_frame(prev_clip)
+                print(f"  Last frame: {len(frame_bytes)/1024:.1f} KB")
+
+            # ── Get audio ─────────────────────────────────────────────────────
+            audio_bytes = audio_files.get(shot_id)
+            if audio_bytes is None:
+                raise ValueError(f"Audio not found for shot: {shot_id}")
+
+            # ── Generate clip ─────────────────────────────────────────────────
+            print(f"  Generating clip for {shot_id}...")
+            clip_bytes = self.generate(
+                image_bytes = frame_bytes,
+                audio_bytes = audio_bytes,
+                prompt      = prompt,
+                seed        = seed,
+            )
+
+            results[shot_id] = clip_bytes
+            prev_clip        = clip_bytes
+            print(f"  Clip done: {len(clip_bytes)/1024:.1f} KB")
+
+        print(f"\nPipeline complete. {len(results)} clips generated.")
+        return results

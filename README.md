@@ -95,7 +95,7 @@ Takes a character image and a voice audio clip produced by Harmony TTS, and synt
 | Pipeline | `multimodalart/ltx2-audio-to-video` |
 | LoRA | `Lightricks/LTX-2-19b-LoRA-Camera-Control-Static` |
 | Approach | Audio-to-video inference (no fine-tuning) |
-| GPU | H200 80GB |
+| GPU | H200 141GB |
 | Inference steps | 8 (distilled sigmas) |
 | Module path | [`./models/video_generator`](./models/video_generator) |
 

@@ -246,7 +246,7 @@ make modal-generate  PROMPT="your prompt here"
 | Pipeline | `multimodalart/ltx2-audio-to-video` |
 | LoRA | `Lightricks/LTX-2-19b-LoRA-Camera-Control-Static` |
 | LoRA scale | `0.8` |
-| GPU | H200 80 GB |
+| GPU | H200 141 GB |
 | Inference steps | 8 (distilled sigma schedule) |
 | Supported resolutions | 512×512 · 768×512 · 512×768 (auto-selected from image aspect ratio) |
 

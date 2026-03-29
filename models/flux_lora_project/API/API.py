@@ -1,9 +1,17 @@
 import modal
 import io
 import os
-from dotenv import load_dotenv
+import subprocess
+from dotenv import load_dotenv, find_dotenv
 
-load_dotenv()
+load_dotenv(find_dotenv())
+
+if not os.environ.get("MODAL_TASK_ID"):
+    HF_TOKEN = os.environ["HF_TOKEN"]
+    subprocess.run(
+        ["modal", "secret", "create", "my-huggingface-secret", f"HF_TOKEN={HF_TOKEN}", "--force"],
+        check=True
+    )
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -23,21 +31,18 @@ app = modal.App("flux-lora-api", image=image)
 
 MODEL_ID  = "black-forest-labs/FLUX.1-dev"
 LORA_ID   = "SeifElden2342532/flux-lora-characters"
-HF_TOKEN  = os.environ["HF_TOKEN"]
 
 volume = modal.Volume.from_name("flux-lora-cache", create_if_missing=True)
 CACHE_DIR = "/model-cache"
 
-
 @app.cls(
     gpu="A100",
     volumes={CACHE_DIR: volume},
-    timeout=600,
+    timeout=3600,
     scaledown_window=120,
-    secrets=[modal.Secret.from_dict({"HF_TOKEN": HF_TOKEN})],
+    secrets=[modal.Secret.from_name("my-huggingface-secret")],
 )
 class FluxModel:
-
     @modal.enter()
     def load(self):
         import torch
@@ -45,6 +50,7 @@ class FluxModel:
         from peft import PeftModel
 
         hf_token = os.environ["HF_TOKEN"]
+        os.environ["HF_HOME"] = CACHE_DIR
 
         self.pipe = FluxPipeline.from_pretrained(
             MODEL_ID,
@@ -58,9 +64,10 @@ class FluxModel:
             LORA_ID,
             subfolder="flux-lora-output",
             token=hf_token,
-            cache_dir=CACHE_DIR,
         )
         self.pipe.transformer = self.pipe.transformer.merge_and_unload()
+
+        volume.commit()
         print("Model ready ✓")
 
     @modal.method()
@@ -74,9 +81,7 @@ class FluxModel:
         height: int = 1024,
     ) -> bytes:
         import torch
-
         generator = torch.Generator("cuda").manual_seed(seed)
-
         result = self.pipe(
             prompt=prompt,
             num_inference_steps=num_inference_steps,
@@ -85,7 +90,6 @@ class FluxModel:
             height=height,
             generator=generator,
         ).images[0]
-
         buf = io.BytesIO()
         result.save(buf, format="PNG")
         buf.seek(0)
@@ -98,7 +102,6 @@ from pydantic import BaseModel
 
 web_app = FastAPI(title="FLUX LoRA Image API")
 
-
 class GenerateRequest(BaseModel):
     prompt: str
     num_inference_steps: int = 28
@@ -107,15 +110,14 @@ class GenerateRequest(BaseModel):
     width: int = 1024
     height: int = 1024
 
-
-@app.function()
+@app.function(image=image)
 @modal.asgi_app()
 def fastapi_app():
-
     @web_app.post("/generate", response_class=Response)
     async def generate(req: GenerateRequest):
         if not req.prompt.strip():
             raise HTTPException(status_code=400, detail="`prompt` must not be empty.")
+
         flux = FluxModel()
         png_bytes = flux.generate.remote(
             req.prompt,

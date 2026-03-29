@@ -1,12 +1,20 @@
 import modal
 import os
 import shutil
+import subprocess
 import tempfile
 from pydantic import BaseModel
 from fastapi.responses import FileResponse
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-load_dotenv()
+load_dotenv(find_dotenv())
+
+if not os.environ.get("MODAL_TASK_ID"):
+    HF_TOKEN = os.environ["HF_TOKEN"]
+    subprocess.run(
+        ["modal", "secret", "create", "my-huggingface-secret", f"HF_TOKEN={HF_TOKEN}", "--force"],
+        check=True
+    )
 
 VOLUME_NAME    = "story-model-cache"
 GPU            = "A100"
@@ -14,8 +22,6 @@ TIMEOUT        = 3600
 PYTHON_VERSION = "3.11"
 MODEL_ID       = "Qwen/Qwen2.5-32B-Instruct"
 CACHE_DIR      = "/model-cache"
-
-HF_TOKEN = os.environ["HF_TOKEN"]
 
 volume = modal.Volume.from_name(VOLUME_NAME, create_if_missing=True)
 
@@ -50,7 +56,7 @@ class Query(BaseModel):
     timeout=TIMEOUT,
     volumes={CACHE_DIR: volume},
     scaledown_window=300,
-    secrets=[modal.Secret.from_dict({"HF_TOKEN": HF_TOKEN})],
+    secrets=[modal.Secret.from_name("my-huggingface-secret")],
 )
 class StoryGeneratorAPI:
 

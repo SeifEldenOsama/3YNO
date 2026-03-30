@@ -10,15 +10,11 @@ from PIL import Image, ImageEnhance, ImageFilter
 
 from src.config import Config
 
-
 DISTILLED_SIGMA_VALUES = [
     1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875
 ]
 
-
 def patch_custom_pipeline():
-    """Remove `additive_mask=True` kwarg injected by newer diffusers into the
-    cached HuggingFace custom pipeline, which older pipeline.py doesn't accept."""
     cache_dir = "/root/.cache/huggingface/modules/diffusers_modules/local/multimodalart--ltx2-audio-to-video"
     pipeline_files = glob.glob(f"{cache_dir}/**/pipeline.py", recursive=True)
     for file_path in pipeline_files:
@@ -30,9 +26,7 @@ def patch_custom_pipeline():
             f.write(new_content)
     print("Patching complete.")
 
-
 def get_resolution(image_bytes: bytes) -> tuple[int, int]:
-    """Pick resolution matching image aspect ratio."""
     img = Image.open(io.BytesIO(image_bytes))
     w, h = img.size
     ratio = w / h
@@ -45,9 +39,7 @@ def get_resolution(image_bytes: bytes) -> tuple[int, int]:
     print(f"Image ratio {ratio:.3f} → resolution {best[0]}x{best[1]}")
     return best[0], best[1]
 
-
 def prepare_image(image_bytes: bytes, width: int, height: int) -> Image.Image:
-    """Load and pre-process the input image."""
     raw = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     print(f"Original image: {raw.size}")
     img = raw.filter(ImageFilter.UnsharpMask(radius=1.0, percent=100, threshold=3))
@@ -56,9 +48,7 @@ def prepare_image(image_bytes: bytes, width: int, height: int) -> Image.Image:
     print(f"Resized to: {img.size}")
     return img
 
-
 def preprocess_audio(audio_bytes: bytes, target_sr: int = 16000) -> tuple[str, float]:
-    """Normalise audio to 16 kHz mono PCM-16 WAV. Returns (path, duration_s)."""
     import librosa
     import soundfile as sf
 
@@ -81,17 +71,13 @@ def preprocess_audio(audio_bytes: bytes, target_sr: int = 16000) -> tuple[str, f
     print(f"Audio preprocessed → {out_path}")
     return out_path, duration
 
-
 def calc_num_frames(duration: float, fps: float) -> int:
-    """(num_frames - 1) must be divisible by 8."""
     total = int(duration * fps)
     base_block = round(total / 8) * 8
     num_frames = base_block + 1
     return max(num_frames, 9)
 
-
 def frames_to_video(flat_frames, height: int, width: int, fps: float, temp_vid: str):
-    """Write a list of PIL images / tensors to an intermediate MP4."""
     import imageio
 
     processed = []
@@ -137,9 +123,7 @@ def frames_to_video(flat_frames, height: int, width: int, fps: float, temp_vid: 
     writer.close()
     print(f"Intermediate video written: {temp_vid}")
 
-
 def merge_and_encode(temp_vid: str, audio_path: str, final_vid: str):
-    """High-quality mux + re-encode with audio."""
     subprocess.run([
         "ffmpeg", "-y",
         "-i", temp_vid, "-i", audio_path,
@@ -152,9 +136,7 @@ def merge_and_encode(temp_vid: str, audio_path: str, final_vid: str):
     ], check=True, capture_output=True)
     print(f"Final video: {final_vid}")
 
-
 class VideoGenerator:
-    """Generates a video clip from one frame image + one audio file."""
 
     def __init__(self, cfg: Config):
         self.cfg  = cfg
@@ -288,27 +270,16 @@ class VideoGenerator:
 
     def generate_pipeline(
         self,
-        shots:             list[dict], 
-        background_images: dict,         
-        character_images:  dict,        
-        audio_files:       dict,         
+        shots:             list[dict],   # from video_timeline.json["shots"]
+        background_images: dict,
+        character_images:  dict,
+        audio_files:       dict,
         seed:              int = 42,
     ) -> dict[str, bytes]:
-        """
-        Process ALL shots across ALL scenes dynamically.
-
-        For each shot:
-          - frame_source == "composite"    → composite background + characters → frame.png
-          - frame_source == "previous_clip" → extract last frame of previous clip
-
-        Then feed frame + audio into LTX-2 to generate clip.
-
-        Returns {shot_id: clip_bytes} for every shot.
-        """
         from src.compositor import composite_frame, extract_last_frame
 
-        results      = {}   
-        prev_clip    = None 
+        results      = {}
+        prev_clip    = None
 
         first_bg_name  = shots[0]["background_name"]
         first_bg_bytes = background_images[first_bg_name]
@@ -334,18 +305,32 @@ class VideoGenerator:
                     raise ValueError(f"Background not found: {bg_name}")
 
                 chars_in_shot = []
-                for cp in shot.get("characters_present", []):
-                    name     = cp["name"] if isinstance(cp, dict) else cp
-                    position = cp.get("position", {"x": 0.5, "y": 0.5}) if isinstance(cp, dict) else {"x": 0.5, "y": 0.5}
+
+                if shot.get("speaker"):
+                    name     = shot["speaker"]
+                    position = shot.get("speaker_position", {"x": 0.5, "y": 0.5})
                     c_bytes  = character_images.get(name)
                     if c_bytes is None:
                         print(f"  WARNING: Character image not found: {name}, skipping")
-                        continue
-                    chars_in_shot.append({
-                        "name":        name,
-                        "image_bytes": c_bytes,
-                        "position":    position,
-                    })
+                    else:
+                        chars_in_shot.append({
+                            "name":        name,
+                            "image_bytes": c_bytes,
+                            "position":    position,
+                        })
+                else:
+                    for cp in shot.get("characters_present", []):
+                        name     = cp["name"] if isinstance(cp, dict) else cp
+                        position = cp.get("position", {"x": 0.5, "y": 0.5}) if isinstance(cp, dict) else {"x": 0.5, "y": 0.5}
+                        c_bytes  = character_images.get(name)
+                        if c_bytes is None:
+                            print(f"  WARNING: Character image not found: {name}, skipping")
+                            continue
+                        chars_in_shot.append({
+                            "name":        name,
+                            "image_bytes": c_bytes,
+                            "position":    position,
+                        })
 
                 frame_bytes = composite_frame(
                     background_bytes = bg_bytes,

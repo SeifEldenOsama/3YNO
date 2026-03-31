@@ -25,7 +25,7 @@ class Query(BaseModel):
     gpu="L4",
     image=image,
     volumes={"/cache": volume},
-    scaledown_window=300
+    scaledown_window=30
 )
 class Summarizer:
 

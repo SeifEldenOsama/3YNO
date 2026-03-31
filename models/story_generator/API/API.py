@@ -55,7 +55,7 @@ class Query(BaseModel):
     gpu=GPU,
     timeout=TIMEOUT,
     volumes={CACHE_DIR: volume},
-    scaledown_window=300,
+    scaledown_window=30,
     secrets=[modal.Secret.from_name("my-huggingface-secret")],
 )
 class StoryGeneratorAPI:

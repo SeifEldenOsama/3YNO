@@ -39,7 +39,7 @@ CACHE_DIR = "/model-cache"
     gpu="A100",
     volumes={CACHE_DIR: volume},
     timeout=3600,
-    scaledown_window=120,
+    scaledown_window=30,
     secrets=[modal.Secret.from_name("my-huggingface-secret")],
 )
 class FluxModel:

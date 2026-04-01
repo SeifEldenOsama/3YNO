@@ -2,6 +2,7 @@ from __future__ import annotations
 import json
 import re
 import random
+import os
 
 VOICE_TEMPLATES = [
     "A {gender} speaker delivers a {style} explanation in a clear teaching voice.",
@@ -68,7 +69,7 @@ VOICE_TEMPLATES = [
 
 
 def _apply_voice_template(voice_description: str) -> str:
-    """Convert 'female, cheerful' → random template filled with gender + style."""
+    """Convert 'female, cheerful' to a random template string."""
     try:
         parts  = [p.strip() for p in voice_description.split(",")]
         gender = parts[0]
@@ -78,55 +79,38 @@ def _apply_voice_template(voice_description: str) -> str:
         return voice_description
 
 
-
 class StoryGenerator:
 
-    def load_model(self, model_id: str, cache_dir: str, hf_token: str):
-        import torch
-        from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+    def load_model(
+        self,
+        hf_token: str,
+        model_id: str = "Qwen/Qwen2.5-32B-Instruct:featherless-ai",
+        hf_base_url: str = "https://router.huggingface.co/v1",
+        **kwargs,  # accepts and ignores legacy cache_dir / model_id kwargs
+    ):
+        """Initialise the HuggingFace Inference API client (OpenAI-compatible)."""
+        from openai import OpenAI
 
         if not hf_token:
             raise RuntimeError("HF_TOKEN not set.")
 
-        print(f"Loading {model_id}...")
+        self.model_id = model_id
+        self.client   = OpenAI(
+            base_url=hf_base_url,
+            api_key=hf_token,
+        )
+        print(f"HuggingFace API client ready — model: {self.model_id}")
 
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.bfloat16,
-            bnb_4bit_use_double_quant=True,
-        )
-
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            model_id, cache_dir=cache_dir, token=hf_token
-        )
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_id,
-            quantization_config=bnb_config,
-            device_map="auto",
-            cache_dir=cache_dir,
-            token=hf_token,
-        )
-        print(f"Model loaded: {model_id}")
 
     def _ask(self, prompt: str, max_new_tokens: int = 4000, temperature: float = 0.7) -> str:
-        import torch
-        messages = [{"role": "user", "content": prompt}]
-        text = self.tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
+        response = self.client.chat.completions.create(
+            model=self.model_id,
+            max_tokens=max_new_tokens,
+            temperature=temperature,
+            top_p=0.9,
+            messages=[{"role": "user", "content": prompt}],
         )
-        inputs = self.tokenizer(text, return_tensors="pt").to(self.model.device)
-        with torch.no_grad():
-            outputs = self.model.generate(
-                **inputs,
-                max_new_tokens=max_new_tokens,
-                temperature=temperature,
-                top_p=0.9,
-                do_sample=True,
-                pad_token_id=self.tokenizer.eos_token_id,
-            )
-        generated = outputs[0][inputs.input_ids.shape[-1]:]
-        return self.tokenizer.decode(generated, skip_special_tokens=True).strip()
+        return response.choices[0].message.content.strip()
 
     def _extract_json(self, raw: str):
         cleaned = raw.strip()
@@ -179,6 +163,7 @@ class StoryGenerator:
             f"Model did not return valid JSON after 5 attempts.\nLast output: {last_raw[:500]}"
         )
 
+
     def _normalize_gender(self, value: str) -> str:
         v = str(value).strip().lower()
         if v in ("male", "m", "boy", "man", "he", "him"):
@@ -197,6 +182,7 @@ class StoryGenerator:
                 continue
             filtered.append(line)
         return filtered
+
 
     def analyze_lesson(self, lesson: str) -> dict:
         prompt = f"""You are an educational content designer for a children's animated show.
@@ -250,7 +236,7 @@ For each CHARACTER provide:
 - personality: what they are like (1 sentence).
 - visual_description: A TTI image generation prompt for this character ONLY.
   Rules:
-  * Pure white background — character only, no scene, no environment.
+  * Pure white background - character only, no scene, no environment.
   * Strictly cartoon style, bold outlines, flat bright colors.
   * State gender clearly at the start (e.g. "A female cartoon ...").
   * Must explicitly mention: large expressive eyes, visible animated mouth.
@@ -314,7 +300,7 @@ Return a JSON array of EXACTLY {num_backgrounds} background objects:
         char_names = ", ".join([c['name'] for c in characters])
 
         prompt = f"""You are writing a children's educational story outline.
-The story exists ONLY to teach this lesson — every scene must serve the lesson.
+The story exists ONLY to teach this lesson - every scene must serve the lesson.
 
 LESSON:
 {lesson}
@@ -329,7 +315,7 @@ AVAILABLE BACKGROUNDS:
 {bgs_summary}
 
 Create EXACTLY {num_scenes} scenes. Rules:
-- Map each lesson step to one or more scenes — cover ALL steps, in order
+- Map each lesson step to one or more scenes - cover ALL steps, in order
 - Every scene must have a clear "lesson_element" that is a specific accurate fact from the lesson
 - Only use character names from: {char_names}
 - Only use background names from: {bg_names}
@@ -382,8 +368,8 @@ Return a JSON array of exactly {num_scenes} scene objects:
                         )
             return "\n".join(lines)
 
-        steps_text = "\n".join([f"- {s}" for s in lesson_steps])
-        passages   = []
+        steps_text   = "\n".join([f"- {s}" for s in lesson_steps])
+        passages     = []
         story_so_far = ""
 
         for scene in outline:
@@ -436,7 +422,7 @@ CRITICAL WRITING RULES:
                 "lesson_step_covered":    scene.get('lesson_step_covered', ''),
                 "passage":                text,
             })
-            story_so_far += f"\n\n[Scene {scene['scene_number']} — taught: {scene['lesson_element']}]\n{text}"
+            story_so_far += f"\n\n[Scene {scene['scene_number']} - taught: {scene['lesson_element']}]\n{text}"
             print(f"Scene {scene['scene_number']} written.", flush=True)
         return passages
 
@@ -480,7 +466,7 @@ CHARACTER VOICES:
 
 CRITICAL RULES:
 - Every line of dialogue MUST relate to the lesson fact being taught
-- NO narration — only character dialogue
+- NO narration - only character dialogue
 - Each line must move the lesson understanding forward
 - Keep dialogue natural and fun
 
@@ -503,7 +489,6 @@ Return ONLY the JSON array."""
             lines = self._ask_json(prompt, max_new_tokens=5000, temperature=0.4)
             lines = self._filter_voice_lines(lines, char_names_list)
 
-            # Apply random voice template to each line's voice_description
             for line in lines:
                 if "voice_description" in line and line["voice_description"]:
                     line["voice_description"] = _apply_voice_template(

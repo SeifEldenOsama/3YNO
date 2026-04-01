@@ -9,31 +9,24 @@ from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
 
-if not os.environ.get("MODAL_TASK_ID"):
-    HF_TOKEN = os.environ["HF_TOKEN"]
+HF_TOKEN     = os.environ.get("HF_TOKEN", "")
+HF_BASE_URL  = "https://router.huggingface.co/v1"
+MODEL_ID     = "Qwen/Qwen2.5-32B-Instruct:featherless-ai"
+TIMEOUT      = 3600
+PYTHON_VERSION = "3.11"
+
+# Register the HF token as a Modal secret on first deploy
+if not os.environ.get("MODAL_TASK_ID") and HF_TOKEN:
     subprocess.run(
         ["modal", "secret", "create", "my-huggingface-secret", f"HF_TOKEN={HF_TOKEN}", "--force"],
-        check=True
+        check=True,
     )
 
-VOLUME_NAME    = "story-model-cache"
-GPU            = "A100"
-TIMEOUT        = 3600
-PYTHON_VERSION = "3.11"
-MODEL_ID       = "Qwen/Qwen2.5-32B-Instruct"
-CACHE_DIR      = "/model-cache"
-
-volume = modal.Volume.from_name(VOLUME_NAME, create_if_missing=True)
 
 image = (
     modal.Image.debian_slim(python_version=PYTHON_VERSION)
     .pip_install(
-        "torch==2.2.2",
-        "transformers==4.44.2",
-        "accelerate==0.33.0",
-        "bitsandbytes==0.43.3",
-        "huggingface_hub==0.24.6",
-        "scipy",
+        "openai",
         "pyyaml",
         "python-dotenv",
         "fastapi[standard]",
@@ -52,27 +45,25 @@ class Query(BaseModel):
 
 
 @app.cls(
-    gpu=GPU,
     timeout=TIMEOUT,
-    volumes={CACHE_DIR: volume},
     scaledown_window=30,
     secrets=[modal.Secret.from_name("my-huggingface-secret")],
 )
 class StoryGeneratorAPI:
 
     @modal.enter()
-    def load_model(self):
+    def setup(self):
         import sys
         sys.path.insert(0, "/root/project")
 
         from src.generator import StoryGenerator
         self.gen = StoryGenerator()
         self.gen.load_model(
-            model_id  = MODEL_ID,
-            cache_dir = CACHE_DIR,
-            hf_token  = os.environ["HF_TOKEN"],
+            hf_token    = os.environ["HF_TOKEN"],
+            model_id    = MODEL_ID,
+            hf_base_url = HF_BASE_URL,
         )
-        print("Model loaded and ready!", flush=True)
+        print("HuggingFace API client ready!", flush=True)
 
     @modal.fastapi_endpoint(method="POST", docs=True)
     def generate(self, query: Query):

@@ -28,7 +28,11 @@ def main():
     out_dir = args.output or cfg.output.dir
 
     gen = StoryGenerator()
-    gen.load_model(cfg.model.id, cfg.model.cache_dir, cfg.credentials.hf_token)
+    gen.load_model(
+        hf_token    = cfg.credentials.hf_token,
+        model_id    = cfg.model.id,
+        hf_base_url = cfg.model.hf_base_url,
+    )
 
     scale           = gen.analyze_lesson(lesson)
     lesson_steps    = scale["lesson_steps"]

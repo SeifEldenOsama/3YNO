@@ -22,8 +22,8 @@ class Credentials:
 
 @dataclass
 class ModelConfig:
-    id:             str   = "Qwen/Qwen2.5-32B-Instruct"
-    cache_dir:      str   = "/model-cache"
+    id:             str   = "Qwen/Qwen2.5-32B-Instruct:featherless-ai"
+    hf_base_url:    str   = "https://router.huggingface.co/v1"
     max_new_tokens: int   = 4000
     temperature:    float = 0.7
     top_p:          float = 0.9
@@ -47,19 +47,17 @@ class OutputConfig:
 @dataclass
 class ModalConfig:
     app_name:       str = "kids-story-generator"
-    volume_name:    str = "story-model-cache"
-    gpu:            str = "A100"
     timeout:        int = 3600
     python_version: str = "3.11"
 
 
 @dataclass
 class Config:
-    credentials: Credentials  = field(default_factory=Credentials)
-    model:       ModelConfig   = field(default_factory=ModelConfig)
-    story:       StoryConfig   = field(default_factory=StoryConfig)
-    output:      OutputConfig  = field(default_factory=OutputConfig)
-    modal:       ModalConfig   = field(default_factory=ModalConfig)
+    credentials: Credentials = field(default_factory=Credentials)
+    model:       ModelConfig  = field(default_factory=ModelConfig)
+    story:       StoryConfig  = field(default_factory=StoryConfig)
+    output:      OutputConfig = field(default_factory=OutputConfig)
+    modal:       ModalConfig  = field(default_factory=ModalConfig)
 
 
 def load_config(path: str = "config.yaml") -> Config:

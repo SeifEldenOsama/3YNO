@@ -2,6 +2,8 @@
 
 An AI pipeline that turns a plain-text educational lesson into a fully structured children's animated story — complete with characters, backgrounds, scene-by-scene passages, and voice scripts — ready to feed into a downstream image/video/TTS production pipeline.
 
+Inference is powered by the **HuggingFace Inference API** (via the OpenAI-compatible router), so **no GPU is required**. Orchestration runs on **Modal** (serverless cloud), which handles scheduling, secrets, and returning outputs to your machine.
+
 ---
 
 ## How It Works
@@ -43,7 +45,7 @@ outputs/
                           └── voice.txt    ← TTS input
 ```
 
-The model used is **Qwen/Qwen2.5-32B-Instruct**, loaded in 4-bit quantization (NF4) via `bitsandbytes`.
+All LLM calls go through the **HuggingFace Inference Router** using the `openai` Python package. The default model is `Qwen/Qwen2.5-32B-Instruct` served via the `featherless-ai` provider, but this is configurable in `config.yaml`.
 
 ---
 
@@ -52,13 +54,15 @@ The model used is **Qwen/Qwen2.5-32B-Instruct**, loaded in 4-bit quantization (N
 ```
 story_generator/
 ├── src/
-│   ├── generator.py      # Core StoryGenerator class (all LLM calls)
+│   ├── generator.py      # Core StoryGenerator class (all HF API calls)
 │   ├── config.py         # Config dataclasses + YAML/env loader
 │   └── save_outputs.py   # Structures and writes all output files
 ├── scripts/
-│   ├── run.py            # Local entrypoint 
+│   └── run.py            # Local entrypoint (no GPU required)
 ├── cloud/
-│   └── run.py            # Modal (cloud GPU) entrypoint
+│   └── run.py            # Modal cloud entrypoint
+├── API/
+│   └── API.py            # Modal-hosted FastAPI endpoint
 ├── config.yaml           # All runtime settings
 ├── lesson.txt            # Your input lesson (edit this)
 ├── requirements.txt
@@ -71,36 +75,39 @@ story_generator/
 ## Requirements
 
 - Python 3.11+
-- CUDA-capable GPU with at least ~40 GB VRAM (A100 recommended)
-- A [Hugging Face](https://huggingface.co) account with access to the model
+- A [HuggingFace](https://huggingface.co) account with a valid API token (`HF_TOKEN`)
 - For cloud execution: a [Modal](https://modal.com) account
+
+No GPU, no local model download, no CUDA required.
 
 ---
 
 ## Setup
 
-**1. Clone and install dependencies:**
+**1. Install dependencies:**
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**2. Set your Hugging Face token:**
+**2. Set your HuggingFace token:**
 
 ```bash
 cp .env.example .env
-# Edit .env and set HF_TOKEN=hf_your_token_here
+# Edit .env and set: HF_TOKEN=hf_your_token_here
 ```
 
 **3. Write your lesson:**
 
-Edit `lesson.txt` with the educational content you want turned into a story. The included example teaches the water cycle to children aged 5–8.
+Edit `lesson.txt` with the educational content you want turned into a story.
 
 ---
 
 ## Running
 
-### Local (requires a GPU machine)
+### Local
+
+Runs the full pipeline locally — all LLM calls go out to the HuggingFace API.
 
 ```bash
 # Using Makefile
@@ -117,7 +124,9 @@ Optional flags:
 --output   Output directory (default: value from config.yaml)
 ```
 
-### Cloud (Modal — A100 GPU)
+### Cloud (Modal)
+
+The job runs as a Modal task in the cloud. Modal handles the container, secrets, and result download. All LLM calls still go through the HuggingFace API — no GPU is provisioned.
 
 ```bash
 # Using Makefile
@@ -127,8 +136,24 @@ make modal-run
 modal run cloud/run.py --lesson-file lesson.txt
 ```
 
-The cloud runner spins up an A100 on Modal, loads the model into a persistent volume (`story-model-cache`) so it is only downloaded once, runs the full pipeline, and saves all outputs locally to `outputs/`.
+### API (Modal-hosted FastAPI)
 
+Deploy a persistent HTTP endpoint that accepts a lesson and returns a zip of all output files.
+
+```bash
+modal deploy API/API.py
+```
+
+Then POST to the deployed URL:
+
+```bash
+curl -X POST https://<your-modal-url>/generate \
+  -H "Content-Type: application/json" \
+  -d '{"lesson": "Today we learn about the water cycle..."}' \
+  --output story.zip
+```
+
+---
 
 ## Configuration
 
@@ -136,17 +161,17 @@ All settings live in `config.yaml`:
 
 ```yaml
 credentials:
-  hf_token: ""           # Override via HF_TOKEN env var
+  hf_token: ""           # Set via HF_TOKEN env var
 
 model:
-  id: "Qwen/Qwen2.5-32B-Instruct"
-  cache_dir: "/model-cache"
+  id: "Qwen/Qwen2.5-32B-Instruct:featherless-ai"
+  hf_base_url: "https://router.huggingface.co/v1"
   max_new_tokens: 4000
   temperature: 0.7
   top_p: 0.9
 
 story:
-  min_characters: 2      # Pipeline auto-selects within these bounds
+  min_characters: 2
   max_characters: 6
   min_backgrounds: 2
   max_backgrounds: 6
@@ -158,44 +183,26 @@ output:
 
 modal:
   app_name: "kids-story-generator"
-  volume_name: "story-model-cache"
-  gpu: "A100"
   timeout: 3600
   python_version: "3.11"
 ```
 
-`HF_TOKEN` can be set in `.env` or as an environment variable — it takes priority over `config.yaml`.
+To switch models, change `model.id` to any model available on the HuggingFace router, e.g.:
+- `"meta-llama/Llama-3.3-70B-Instruct:fireworks-ai"`
+- `"mistralai/Mistral-7B-Instruct-v0.3:hf-inference"`
 
 ---
-
-
-## Run API
-
-```bash
-modal deploy API/API.py
-```
-
----
-
 
 ## Output Files
 
 | File | Description |
 |---|---|
-| `00_generation_manifest.json` | Lists all image prompts (characters + backgrounds), TTS tasks, and frame compositing tasks. Feed this into your image/voice generation tools. |
-| `video_timeline.json` | Ordered list of every shot with timing estimates, file paths, and video prompts. Use this to assemble the final video. |
+| `00_generation_manifest.json` | Lists all image prompts (characters + backgrounds), TTS tasks, and frame compositing tasks. |
+| `video_timeline.json` | Ordered list of every shot with timing estimates, file paths, and video prompts. |
 | `story_index.json` | Complete story structure: all scenes, characters per scene, shots, and lesson elements. |
 | `scenes/scene_XX_*/scene.json` | Per-scene data including background, characters with positions, and all shots. |
 | `scenes/.../shots/shot_XX_*/prompt.txt` | Video generation prompt for that shot. |
 | `scenes/.../shots/shot_XX_*/voice.txt` | TTS input: speaker name, voice description, and dialogue text. |
-
-Character images go to `assets/characters/<name>.png` and backgrounds to `assets/backgrounds/<name>.png` — these paths are referenced throughout the manifests but must be generated by a separate image generation step.
-
----
-
-## Example Lesson
-
-The included `lesson.txt` teaches the water cycle (evaporation → condensation → precipitation) to children aged 5–8. The pipeline will automatically create characters like a sun and a raindrop, backgrounds like an ocean shore and a cloudy sky, and a multi-scene story where each character explains their role in the cycle through dialogue.
 
 ---
 

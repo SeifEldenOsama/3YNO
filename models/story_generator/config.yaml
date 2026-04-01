@@ -1,9 +1,9 @@
 credentials:
-  hf_token: ""
+  hf_token: ""           # Set via HF_TOKEN environment variable
 
 model:
-  id: "Qwen/Qwen2.5-32B-Instruct"
-  cache_dir: "/model-cache"
+  id: "Qwen/Qwen2.5-32B-Instruct:featherless-ai"
+  hf_base_url: "https://router.huggingface.co/v1"
   max_new_tokens: 4000
   temperature: 0.7
   top_p: 0.9
@@ -21,7 +21,5 @@ output:
 
 modal:
   app_name: "kids-story-generator"
-  volume_name: "story-model-cache"
-  gpu: "A100"
   timeout: 3600
   python_version: "3.11"

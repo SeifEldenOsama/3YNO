@@ -116,7 +116,7 @@ class StoryGeneratorAPI:
 
         print("Saving output files...", flush=True)
         temp_dir = tempfile.mkdtemp()
-        out_dir  = os.path.join(temp_dir, "story_output")
+        out_dir  = os.path.join(temp_dir, "output")
         os.makedirs(out_dir, exist_ok=True)
 
         save_all(result, out_dir=out_dir)

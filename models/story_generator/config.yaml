@@ -17,7 +17,7 @@ story:
   max_scenes: 10
 
 output:
-  dir: "outputs"
+  dir: "output"
 
 modal:
   app_name: "kids-story-generator"

@@ -137,6 +137,9 @@ modal deploy API/API.py
 
 ---
 
+## Huggingface Space
+https://huggingface.co/spaces/SeifElden2342532/children-educational-summarizer
+
 ## License
 
 Apache 2.0

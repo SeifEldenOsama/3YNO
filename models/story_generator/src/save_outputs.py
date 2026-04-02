@@ -3,9 +3,6 @@ import json
 import os
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def _char_names(scene: dict) -> list:
     result = []
@@ -34,16 +31,12 @@ def _write(path: str, data):
     print(f"Saved {path}")
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 
 def save_all(result: dict, out_dir: str = "output"):
     characters   = result["characters"]
     backgrounds  = result["backgrounds"]
     scripts      = result["voice_scripts"]
 
-    # ── 1. Create the three asset folders ──────────────────────────────────
     chars_folder  = os.path.join(out_dir, "characters")
     bgs_folder    = os.path.join(out_dir, "backgrounds")
     voices_folder = os.path.join(out_dir, "voices")
@@ -52,7 +45,6 @@ def save_all(result: dict, out_dir: str = "output"):
     os.makedirs(bgs_folder,    exist_ok=True)
     os.makedirs(voices_folder, exist_ok=True)
 
-    # ── 2. characters.json ─────────────────────────────────────────────────
     characters_json = []
     for c in characters:
         name = c["name"]
@@ -64,7 +56,6 @@ def save_all(result: dict, out_dir: str = "output"):
 
     _write(os.path.join(out_dir, "characters.json"), characters_json)
 
-    # ── 3. backgrounds.json ────────────────────────────────────────────────
     backgrounds_json = []
     for b in backgrounds:
         name = b["name"]
@@ -76,7 +67,6 @@ def save_all(result: dict, out_dir: str = "output"):
 
     _write(os.path.join(out_dir, "backgrounds.json"), backgrounds_json)
 
-    # ── 4. voices.json ─────────────────────────────────────────────────────
     voices_json = []
     for scene in scripts:
         scene_id = scene["scene_number"]
@@ -94,19 +84,16 @@ def save_all(result: dict, out_dir: str = "output"):
 
     _write(os.path.join(out_dir, "voices.json"), voices_json)
 
-    # Build a quick voice lookup: (scene_id, shot_number) -> output_path
     voice_path_lookup = {}
     for v in voices_json:
         voice_path_lookup[(v["scene_id"], v["shot_id"])] = v["output_path"]
 
-    # ── 5. shots_flow.json ─────────────────────────────────────────────────
     scenes_flow = []
     for scene in scripts:
         scene_id  = scene["scene_number"]
         bg_name   = scene["background"]
         scene_pos = _scene_positions(scene)
 
-        # Characters in this scene (with path + position)
         chars_in_scene = []
         for name in _char_names(scene):
             pos = scene_pos.get(name, {})
@@ -119,7 +106,6 @@ def save_all(result: dict, out_dir: str = "output"):
                 },
             })
 
-        # Shots in this scene
         shots_list = []
         for shot_number, line in enumerate(scene["script"], start=1):
             vpath = voice_path_lookup.get(
@@ -144,7 +130,6 @@ def save_all(result: dict, out_dir: str = "output"):
 
     _write(os.path.join(out_dir, "shots_flow.json"), {"scenes": scenes_flow})
 
-    # ── Summary ────────────────────────────────────────────────────────────
     total_shots = sum(len(s["script"]) for s in scripts)
     print(f"\nTotal scenes : {len(scripts)}")
     print(f"Total shots  : {total_shots}")

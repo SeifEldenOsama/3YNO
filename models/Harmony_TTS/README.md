@@ -128,6 +128,9 @@ modal deploy API/API.py
 
 ---
 
+## Huggingface space
+https://huggingface.co/spaces/SeifElden2342532/Harmony-tts
+
 ## License
 
 Apache 2.0

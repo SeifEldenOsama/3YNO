@@ -31,9 +31,11 @@ def get_resolution(image_bytes: bytes) -> tuple[int, int]:
     w, h = img.size
     ratio = w / h
     resolutions = {
-        "1:1":  (512, 512,  1.0),
-        "16:9": (768, 512,  16/9),
-        "9:16": (512, 768,  9/16),
+        "1:1":   (768,  768,  1.0),
+        "16:9":  (1280, 720,  16/9),
+        "9:16":  (720,  1280, 9/16),
+        "4:3":   (768,  576,  4/3),
+        "3:4":   (576,  768,  3/4),
     }
     best = min(resolutions.values(), key=lambda r: abs(r[2] - ratio))
     print(f"Image ratio {ratio:.3f} → resolution {best[0]}x{best[1]}")
@@ -42,10 +44,16 @@ def get_resolution(image_bytes: bytes) -> tuple[int, int]:
 def prepare_image(image_bytes: bytes, width: int, height: int) -> Image.Image:
     raw = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     print(f"Original image: {raw.size}")
-    img = raw.filter(ImageFilter.UnsharpMask(radius=1.0, percent=100, threshold=3))
-    img = ImageEnhance.Contrast(img).enhance(1.05)
+    if raw.width < width or raw.height < height:
+        raw = raw.resize(
+            (max(raw.width, width * 2), max(raw.height, height * 2)),
+            Image.LANCZOS,
+        )
+    img = raw.filter(ImageFilter.UnsharpMask(radius=1.5, percent=150, threshold=2))
+    img = ImageEnhance.Contrast(img).enhance(1.08)
+    img = ImageEnhance.Sharpness(img).enhance(1.2)
     img = img.resize((width, height), Image.LANCZOS)
-    print(f"Resized to: {img.size}")
+    print(f"Prepared image: {img.size}")
     return img
 
 def preprocess_audio(audio_bytes: bytes, target_sr: int = 16000) -> tuple[str, float]:
@@ -128,13 +136,95 @@ def merge_and_encode(temp_vid: str, audio_path: str, final_vid: str):
         "ffmpeg", "-y",
         "-i", temp_vid, "-i", audio_path,
         "-map", "0:v", "-map", "1:a",
-        "-c:v", "libx264", "-crf", "16", "-preset", "slow",
-        "-profile:v", "high", "-level", "4.1", "-pix_fmt", "yuv420p",
-        "-c:a", "aac", "-b:a", "192k",
+        "-c:v", "libx264", "-crf", "10", "-preset", "veryslow",
+        "-profile:v", "high", "-level", "4.2",
+        "-pix_fmt", "yuv420p",
+        "-tune", "animation",
+        "-x264-params", "ref=6:bframes=8:me=umh:subme=10:trellis=2",
+        "-c:a", "aac", "-b:a", "320k", "-ar", "48000",
         "-movflags", "+faststart", "-shortest",
         final_vid,
     ], check=True, capture_output=True)
     print(f"Final video: {final_vid}")
+
+
+def extend_clip(video_path: str, relax_secs: float, dump_secs: float, fps: float) -> str:
+    total_extra = relax_secs + dump_secs
+
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+        frame_path = f.name
+    subprocess.run([
+        "ffmpeg", "-y",
+        "-sseof", "-0.1", "-i", video_path,
+        "-vframes", "1", "-q:v", "1",
+        frame_path,
+    ], check=True, capture_output=True)
+
+    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
+        frozen_path = f.name
+    subprocess.run([
+        "ffmpeg", "-y",
+        "-loop", "1", "-framerate", str(fps), "-i", frame_path,
+        "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo",
+        "-t", str(total_extra),
+        "-c:v", "libx264", "-crf", "10", "-preset", "veryslow",
+        "-pix_fmt", "yuv420p", "-r", str(fps),
+        "-tune", "stillimage",
+        "-c:a", "aac", "-b:a", "320k", "-ar", "48000",
+        frozen_path,
+    ], check=True, capture_output=True)
+
+    with tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w") as f:
+        f.write(f"file '{video_path}'\nfile '{frozen_path}'\n")
+        concat_list = f.name
+
+    extended_path = video_path.replace(".mp4", "_ext.mp4")
+    subprocess.run([
+        "ffmpeg", "-y",
+        "-f", "concat", "-safe", "0",
+        "-i", concat_list,
+        "-c", "copy",
+        extended_path,
+    ], check=True, capture_output=True)
+
+    for p in [frame_path, frozen_path, concat_list]:
+        from pathlib import Path as _P
+        _P(p).unlink(missing_ok=True)
+
+    print(f"Clip extended: +{relax_secs}s relax +{dump_secs}s dump → {extended_path}")
+    return extended_path
+
+
+def trim_clip(video_bytes: bytes, trim_secs: float) -> bytes:
+    from pathlib import Path as _P
+    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
+        f.write(video_bytes)
+        input_path = f.name
+
+    probe = subprocess.run([
+        "ffprobe", "-v", "quiet",
+        "-show_entries", "format=duration",
+        "-of", "csv=p=0", input_path,
+    ], capture_output=True, text=True)
+    duration    = float(probe.stdout.strip())
+    new_duration = max(0.0, duration - trim_secs)
+
+    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
+        output_path = f.name
+
+    subprocess.run([
+        "ffmpeg", "-y",
+        "-i", input_path,
+        "-t", str(new_duration),
+        "-c", "copy",
+        output_path,
+    ], check=True, capture_output=True)
+
+    trimmed = open(output_path, "rb").read()
+    _P(input_path).unlink(missing_ok=True)
+    _P(output_path).unlink(missing_ok=True)
+    print(f"Clip trimmed: -{trim_secs}s dump removed ({duration:.2f}s → {new_duration:.2f}s)")
+    return trimmed
 
 class VideoGenerator:
 
@@ -262,8 +352,10 @@ class VideoGenerator:
                 print(f"All merges failed: {e2}. Silent video.")
                 output_path = temp_vid
 
-        result = open(output_path, "rb").read()
-        for p in [audio_path, temp_vid, final_vid]:
+        extended_path = extend_clip(output_path, relax_secs=1.0, dump_secs=3.0, fps=fps)
+
+        result = open(extended_path, "rb").read()
+        for p in [audio_path, temp_vid, final_vid, extended_path]:
             if os.path.exists(p):
                 os.unlink(p)
         return result
@@ -356,9 +448,9 @@ class VideoGenerator:
                 seed        = seed,
             )
 
-            results[shot_id] = clip_bytes
-            prev_clip        = clip_bytes
-            print(f"  Clip done: {len(clip_bytes)/1024:.1f} KB")
+            prev_clip           = clip_bytes
+            results[shot_id]    = trim_clip(clip_bytes, trim_secs=3.0)
+            print(f"  Clip done: {len(results[shot_id])/1024:.1f} KB (trimmed)")
 
         print(f"\nPipeline complete. {len(results)} clips generated.")
         return results

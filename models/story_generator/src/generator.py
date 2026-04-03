@@ -453,6 +453,18 @@ CRITICAL WRITING RULES:
                 for name in char_names_list
             ])
 
+            others_context = (
+                f"Characters in this scene: {', '.join(char_names_list)}. "
+                "For each shot, one character speaks while the others are still present and visible. "
+                "The video_prompt MUST make clear WHO is speaking and WHAT each non-speaking character "
+                "is doing at that exact moment (e.g. listening attentively, nodding, looking curious, "
+                "reacting with surprise, glancing at the speaker, etc.)."
+                if len(char_names_list) > 1
+                else
+                f"The only character in this scene is {char_names_list[0]}. "
+                "The video_prompt should focus entirely on this character speaking."
+            )
+
             prompt = f"""You are writing a voice script for a children's educational animated video.
 
 THIS SCENE TEACHES: {sp['lesson_element']}
@@ -463,6 +475,8 @@ CHARACTER POSITIONS IN SCENE:
 
 CHARACTER VOICES:
 {char_voice_info}
+
+{others_context}
 
 CRITICAL RULES:
 - Every line of dialogue MUST relate to the lesson fact being taught
@@ -482,7 +496,11 @@ Return a JSON array. Each item must have EXACTLY these 4 fields:
 2. text: EXACTLY 15 to 20 words of natural dialogue.
 3. voice_description: ONLY gender and ONE emotion word separated by a comma.
    Example: "female, cheerful"
-4. video_prompt: A prompt for the LTX-2 video model for this speaking moment.
+4. video_prompt: Describe the shot visually for the LTX-2 video model.
+   - State clearly which character is speaking (mouth open, gesturing).
+   - Describe what EVERY other character in the scene is doing at this moment.
+   - Include the background setting.
+   - Example format: "[Speaker] talks excitedly while [Other] listens and nods. Background: [scene]."
 
 Return ONLY the JSON array."""
 

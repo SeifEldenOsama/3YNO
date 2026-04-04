@@ -8,21 +8,19 @@ import numpy as np
 from PIL import Image
 
 
-def remove_white_background(image_bytes: bytes, threshold: int = 240) -> Image.Image:
-    """
-    Remove white (or near-white) background from a character PNG.
-    Returns RGBA image where white pixels become transparent.
-
-    threshold: pixels where R,G,B are all >= threshold are treated as background.
-    """
-    img  = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
-    data = np.array(img, dtype=np.uint8)
-
-    r, g, b, a = data[..., 0], data[..., 1], data[..., 2], data[..., 3]
-    white_mask = (r >= threshold) & (g >= threshold) & (b >= threshold)
-
-    data[white_mask, 3] = 0          
-    return Image.fromarray(data, "RGBA")
+def remove_background(image_bytes: bytes) -> Image.Image:
+    try:
+        from rembg import remove as rembg_remove
+        result = rembg_remove(image_bytes)
+        return Image.open(io.BytesIO(result)).convert("RGBA")
+    except Exception as e:
+        print(f"  rembg failed ({e}), falling back to threshold removal")
+        img  = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
+        data = np.array(img, dtype=np.uint8)
+        r, g, b = data[..., 0], data[..., 1], data[..., 2]
+        white_mask = (r >= 240) & (g >= 240) & (b >= 240)
+        data[white_mask, 3] = 0
+        return Image.fromarray(data, "RGBA")
 
 
 def composite_frame(
@@ -46,16 +44,24 @@ def composite_frame(
     bg = bg.resize((W, H), Image.LANCZOS)
     canvas = bg.copy()
 
-    for char in characters:
-        char_img   = remove_white_background(char["image_bytes"])
-        position   = char.get("position", {"x": 0.5, "y": 0.5})
+    n_chars = len(characters)
+    for idx, char in enumerate(characters):
+        char_img = remove_background(char["image_bytes"])
+        position = char.get("position", {"x": 0.5, "y": 0.5})
+        is_speaker = char.get("is_speaker", idx == 0)
 
         cx = float(position.get("x", 0.5))
         cy = float(position.get("y", 0.5))
 
-        char_h = int(H * 0.35)
-        ratio  = char_h / char_img.height
-        char_w = int(char_img.width * ratio)
+        if n_chars == 1:
+            char_h = int(H * 0.75)
+        elif is_speaker:
+            char_h = int(H * 0.70)
+        else:
+            char_h = int(H * 0.50)
+
+        ratio    = char_h / char_img.height
+        char_w   = int(char_img.width * ratio)
         char_img = char_img.resize((char_w, char_h), Image.LANCZOS)
 
         paste_x = int(cx * W) - char_w // 2
@@ -65,7 +71,7 @@ def composite_frame(
         paste_y = max(0, min(paste_y, H - char_h))
 
         canvas.paste(char_img, (paste_x, paste_y), mask=char_img.split()[3])
-        print(f"  Placed {char.get('name','?')} at ({cx:.2f},{cy:.2f}) → pixel ({paste_x},{paste_y})")
+        print(f"  Placed {char.get('name','?')} ({'speaker' if is_speaker else 'listener'}) at ({cx:.2f},{cy:.2f}) → {char_w}x{char_h}px")
 
     result = canvas.convert("RGB")
     buf    = io.BytesIO()
@@ -86,7 +92,7 @@ def extract_last_frame(video_bytes: bytes) -> bytes:
 
     subprocess.run([
         "ffmpeg", "-y",
-        "-sseof", "-0.1",
+        "-sseof", "-1.5",
         "-i", video_path,
         "-vframes", "1",
         "-q:v", "1",

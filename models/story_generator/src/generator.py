@@ -223,8 +223,8 @@ Generate EXACTLY {num_characters} characters.
 Each character REPRESENTS a key concept or element from the lesson.
 
 CRITICAL RULES:
-- Characters MUST be objects or nature things from the lesson world (e.g. a sun, a raindrop, a cloud).
-- Characters must NOT be human.
+- Characters MUST be objects or nature things from the lesson world (e.g. a sun, a raindrop, a cloud, a plant, a wind gust).
+- Characters must NEVER be human or have a human face, human body, or human skin. NO people. NO humans. NO boys. NO girls.
 - Each character's role must directly relate to what they represent in the lesson.
 - Each character MUST have a different image_location so they do not overlap.
 
@@ -236,11 +236,11 @@ For each CHARACTER provide:
 - personality: what they are like (1 sentence).
 - visual_description: A TTI image generation prompt for this character ONLY.
   Rules:
+  * The character MUST be a cartoon version of a NON-HUMAN object or nature element (e.g. a cartoon sun with a smiley face, a cartoon water droplet, a cartoon cloud). NEVER a human, person, boy, or girl.
   * Pure white background - character only, no scene, no environment.
-  * Strictly cartoon style, bold outlines, flat bright colors.
-  * State gender clearly at the start (e.g. "A female cartoon ...").
-  * Must explicitly mention: large expressive eyes, visible animated mouth.
-  * End with: "pure white background, cartoon illustration, children's show style".
+  * Strictly 2D cartoon style, bold black outlines, flat bright colors. NO photorealism. NO 3D rendering. NO human anatomy.
+  * Give the character a cute cartoon face: large round expressive eyes, a wide animated smiling mouth. NO human nose. NO human ears. NO human skin.
+  * End with: "pure white background, 2D cartoon illustration, children's TV show style, no humans, no people, no realistic features".
   * 3-4 sentences total.
 - image_location: Where this character will be placed on the scene image.
   Return as a JSON object: {{"x": <float>, "y": <float>}}
@@ -278,7 +278,10 @@ Do NOT include any characters in the background.
 For each BACKGROUND provide:
 - name: short 2-3 word label
 - lesson_context: which part of the lesson happens here (1 sentence)
-- visual_description: VERY DETAILED background-only description. NO characters. 3-4 sentences.
+- visual_description: VERY DETAILED background-only description. NO characters. NO humans. NO people.
+  Style rules: strictly 2D cartoon illustration style, flat bright colors, bold outlines, children's animated TV show look.
+  Must end with: "2D cartoon background, children's animated show style, no characters, no people, no humans".
+  3-4 sentences total.
 - mood: one word (cheerful, cozy, adventurous, mysterious, warm, bright, etc.)
 
 Return a JSON array of EXACTLY {num_backgrounds} background objects:
@@ -448,21 +451,38 @@ CRITICAL WRITING RULES:
                 for name in char_names_list if name in char_lookup
             ])
 
+            # Build a lookup of what each character represents (their real-world identity)
+            char_identity_map = "\n".join([
+                f"- {name} = {char_lookup[name].get('what_they_represent', char_lookup[name].get('role', name))}"
+                for name in char_names_list if name in char_lookup
+            ])
+
             location_map = "\n".join([
                 f"- {name}: x={scene_pos[name].get('x','?')}, y={scene_pos[name].get('y','?')}"
                 for name in char_names_list
             ])
 
+            # Build identity descriptions for use in video_prompt context
+            identity_lines = [
+                f"{name} (who represents {char_lookup[name].get('what_they_represent', char_lookup[name].get('role', name))})"
+                for name in char_names_list if name in char_lookup
+            ]
+
             others_context = (
-                f"Characters in this scene: {', '.join(char_names_list)}. "
+                f"Characters in this scene: {', '.join(identity_lines)}. "
                 "For each shot, one character speaks while the others are still present and visible. "
-                "The video_prompt MUST make clear WHO is speaking and WHAT each non-speaking character "
-                "is doing at that exact moment (e.g. listening attentively, nodding, looking curious, "
-                "reacting with surprise, glancing at the speaker, etc.)."
+                "The video_prompt MUST clearly identify the speaking character by BOTH their name AND what they represent "
+                "(e.g. 'Sunshine the sun', 'Droplet the water droplet', 'Breezy the wind'). "
+                "It must also state their role (e.g. 'who provides energy to plants'). "
+                "Describe what EVERY other character in the scene is doing at that exact moment "
+                "(listening attentively, nodding, looking curious, reacting with surprise, glancing at the speaker, etc.) "
+                "and also identify each of them by name and what they represent."
                 if len(char_names_list) > 1
                 else
-                f"The only character in this scene is {char_names_list[0]}. "
-                "The video_prompt should focus entirely on this character speaking."
+                f"The only character in this scene is {char_names_list[0]}, who represents "
+                f"{char_lookup[char_names_list[0]].get('what_they_represent', char_lookup[char_names_list[0]].get('role', char_names_list[0])) if char_names_list[0] in char_lookup else char_names_list[0]}. "
+                "The video_prompt should identify this character by both their name and what they represent, "
+                "mention their role, and focus entirely on this character speaking."
             )
 
             prompt = f"""You are writing a voice script for a children's educational animated video.
@@ -496,11 +516,18 @@ Return a JSON array. Each item must have EXACTLY these 4 fields:
 2. text: EXACTLY 15 to 20 words of natural dialogue.
 3. voice_description: ONLY gender and ONE emotion word separated by a comma.
    Example: "female, cheerful"
-4. video_prompt: Describe the shot visually for the LTX-2 video model.
-   - State clearly which character is speaking (mouth open, gesturing).
-   - Describe what EVERY other character in the scene is doing at this moment.
-   - Include the background setting.
-   - Example format: "[Speaker] talks excitedly while [Other] listens and nods. Background: [scene]."
+4. video_prompt: MUST follow this EXACT format and nothing else — one sentence only:
+   "[SpeakerName] the [what speaker represents], who [speaker role], mouth moving in sync with speech, talking animation, while [OtherName] the [what they represent] listens. Background: [scene description]. 2D cartoon style."
+
+   STRICT RULES:
+   - Use the CHARACTER IDENTITY MAP below for names and roles.
+   - Replace [SpeakerName], [what speaker represents], [speaker role], [OtherName], [what they represent], [scene description] with real values.
+   - If there is only one character, omit the "while..." part.
+   - Do NOT add any extra sentences, descriptions, or explanations beyond this format.
+   - Do NOT mention camera movement, zoom, pan, or transitions.
+
+CHARACTER IDENTITY MAP (name → what they represent):
+{char_identity_map}
 
 Return ONLY the JSON array."""
 

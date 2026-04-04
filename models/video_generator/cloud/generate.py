@@ -30,7 +30,7 @@ image = (
         "diffusers", "transformers==4.52.4", "huggingface_hub[hf_transfer]",
         "hf_transfer", "sentencepiece", "numpy", "pillow", "soundfile",
         "imageio[ffmpeg]", "accelerate", "einops", "scipy", "av", "moviepy",
-        "peft", "librosa", "pyyaml", "python-dotenv",
+        "peft", "librosa", "pyyaml", "python-dotenv", "rembg[gpu]",
     )
     .env({
         "HF_HUB_ENABLE_HF_TRANSFER": "1",
@@ -70,12 +70,13 @@ class VideoGeneratorModal:
         prompt:      str = None,
         seed:        int = 42,
     ) -> bytes:
-        return self.gen.generate(
+        clip_bytes, _ = self.gen.generate(
             image_bytes = image_bytes,
             audio_bytes = audio_bytes,
             prompt      = prompt,
             seed        = seed,
         )
+        return clip_bytes
 
     @modal.method()
     def generate_scene(self, payload: dict) -> dict:
@@ -137,6 +138,7 @@ def _build_scene_payloads(scenes, root, background_images, character_images, see
                 "background_name":    bg_name,
                 "frame_source":       frame_source,
                 "video_prompt":       shot.get("video_prompt"),
+                "speaker":            shot.get("speaker", ""),
                 "characters_present": [
                     {"name": c["name"], "position": c["position"]}
                     for c in scene_chars

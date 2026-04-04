@@ -19,7 +19,6 @@ image = (
         "torch",
         "diffusers",
         "transformers",
-        "peft",
         "accelerate",
         "sentencepiece",
         "protobuf",
@@ -27,12 +26,11 @@ image = (
     )
 )
 
-app = modal.App("flux-lora-api", image=image)
+app = modal.App("flux-base-api", image=image)
 
-MODEL_ID  = "black-forest-labs/FLUX.1-dev"
-LORA_ID   = "SeifElden2342532/flux-lora-characters"
+MODEL_ID = "black-forest-labs/FLUX.1-dev"
 
-volume = modal.Volume.from_name("flux-lora-cache", create_if_missing=True)
+volume = modal.Volume.from_name("flux-base-cache", create_if_missing=True)
 CACHE_DIR = "/model-cache"
 
 @app.cls(
@@ -47,7 +45,6 @@ class FluxModel:
     def load(self):
         import torch
         from diffusers import FluxPipeline
-        from peft import PeftModel
 
         hf_token = os.environ["HF_TOKEN"]
         os.environ["HF_HOME"] = CACHE_DIR
@@ -58,14 +55,6 @@ class FluxModel:
             token=hf_token,
             cache_dir=CACHE_DIR,
         ).to("cuda")
-
-        self.pipe.transformer = PeftModel.from_pretrained(
-            self.pipe.transformer,
-            LORA_ID,
-            subfolder="flux-lora-output",
-            token=hf_token,
-        )
-        self.pipe.transformer = self.pipe.transformer.merge_and_unload()
 
         volume.commit()
         print("Model ready ✓")
@@ -100,7 +89,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-web_app = FastAPI(title="FLUX LoRA Image API")
+web_app = FastAPI(title="FLUX Base Image API")
 
 class GenerateRequest(BaseModel):
     prompt: str

@@ -53,6 +53,7 @@ image = (
 app = modal.App("video-generator-api", image=image)
 
 
+
 @app.cls(
     gpu=GPU,
     volumes={MODEL_CACHE: volume},
@@ -101,17 +102,23 @@ class VideoGeneratorModal:
         )
 
 
-def _extract_zip(zip_bytes: bytes):
+
+@app.function(
+    image=image,
+    timeout=TIMEOUT,
+    memory=8192,
+)
+def run_pipeline_from_zip(zip_bytes: bytes, seed: int = 42) -> bytes:
     tmp_dir = Path(tempfile.mkdtemp())
+
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
         zf.extractall(tmp_dir)
+
     candidates = list(tmp_dir.rglob("shots_flow.json"))
     if not candidates:
         raise FileNotFoundError("shots_flow.json not found inside zip")
-    return tmp_dir, candidates[0].parent
+    root = candidates[0].parent
 
-
-def _load_assets(root: Path):
     background_images = {
         png.stem: png.read_bytes()
         for png in (root / "backgrounds").glob("*.png")
@@ -120,10 +127,11 @@ def _load_assets(root: Path):
         png.stem: png.read_bytes()
         for png in (root / "characters").glob("*.png")
     }
-    return background_images, character_images
 
+    shots_flow = json.loads((root / "shots_flow.json").read_text())
+    scenes     = shots_flow["scenes"]
 
-def _build_scene_payloads(scenes, root, background_images, character_images, seed):
+    # Build payloads
     payloads   = []
     shot_order = []
     for scene in scenes:
@@ -153,6 +161,7 @@ def _build_scene_payloads(scenes, root, background_images, character_images, see
             voice_path = root / shot["voice_path"]
             if voice_path.exists():
                 scene_audio[shot_id] = voice_path.read_bytes()
+
         payloads.append({
             "shots":             scene_shots,
             "background_images": background_images,
@@ -160,18 +169,24 @@ def _build_scene_payloads(scenes, root, background_images, character_images, see
             "audio_files":       scene_audio,
             "seed":              seed,
         })
-    return payloads, shot_order
 
+    gen     = VideoGeneratorModal()
+    results = {}
+    for scene_result in gen.generate_scene.map(payloads):
+        results.update(scene_result)
 
-def _concat_clips(results: dict, shot_order: list) -> bytes:
-    tmp_dir = Path(tempfile.mkdtemp())
-    clips   = []
+    clips_dir = tmp_dir / "clips"
+    clips_dir.mkdir()
+    clips = []
     for shot_id in shot_order:
         clip_bytes = results.get(shot_id)
         if clip_bytes:
-            p = tmp_dir / f"{shot_id}.mp4"
+            p = clips_dir / f"{shot_id}.mp4"
             p.write_bytes(clip_bytes)
             clips.append(p)
+
+    if not clips:
+        raise ValueError("No clips were generated")
 
     concat_list = tmp_dir / "concat.txt"
     concat_list.write_text("\n".join(f"file '{p.resolve()}'" for p in clips))
@@ -188,21 +203,26 @@ def _concat_clips(results: dict, shot_order: list) -> bytes:
     return output.read_bytes()
 
 
+
 web_app = FastAPI(title="Video Generator API")
 
 
-@app.function(image=image)
+@app.function(
+    image=image,
+    memory=2048, 
+    timeout=TIMEOUT,
+)
 @modal.asgi_app()
 def fastapi_app():
 
     @web_app.post(
         "/generate",
         response_class=Response,
-        summary="Generate a single video clip from an image + audio",
+        summary="Generate a single clip from an image + audio",
     )
     async def generate(
-        image: UploadFile = File(..., description="Starting frame (PNG/JPG)"),
-        audio: UploadFile = File(..., description="Voice audio (WAV/MP3)"),
+        image: UploadFile = File(...),
+        audio: UploadFile = File(...),
         prompt: str       = Form(default=None),
         seed:   int       = Form(default=42),
     ):
@@ -225,10 +245,10 @@ def fastapi_app():
     @web_app.post(
         "/generate-from-zip",
         response_class=Response,
-        summary="Generate a full video from a story zip (shots_flow.json + assets)",
+        summary="Generate full video from story zip",
     )
     async def generate_from_zip(
-        story_zip: UploadFile = File(..., description="Zip with shots_flow.json, backgrounds/, characters/, audio/"),
+        story_zip: UploadFile = File(...),
         seed:      int        = Form(default=42),
     ):
         zip_bytes = await story_zip.read()
@@ -236,23 +256,10 @@ def fastapi_app():
             raise HTTPException(status_code=400, detail="zip file is empty")
 
         try:
-            tmp_dir, root = _extract_zip(zip_bytes)
-        except FileNotFoundError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            final_video = run_pipeline_from_zip.remote(zip_bytes, seed)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
 
-        shots_flow          = json.loads((root / "shots_flow.json").read_text())
-        scenes              = shots_flow["scenes"]
-        background_images, character_images = _load_assets(root)
-        payloads, shot_order = _build_scene_payloads(
-            scenes, root, background_images, character_images, seed
-        )
-
-        gen     = VideoGeneratorModal()
-        results = {}
-        for scene_result in gen.generate_scene.map(payloads):
-            results.update(scene_result)
-
-        final_video = _concat_clips(results, shot_order)
         return Response(content=final_video, media_type="video/mp4")
 
     @web_app.get("/health")

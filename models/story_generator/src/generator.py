@@ -242,10 +242,11 @@ For each CHARACTER provide:
   * Give the character a cute cartoon face: large round expressive eyes, a wide animated smiling mouth. NO human nose. NO human ears. NO human skin.
   * End with: "pure white background, 2D cartoon illustration, children's TV show style, no humans, no people, no realistic features".
   * 3-4 sentences total.
-- image_location: Where this character will be placed on the scene image.
-  Return as a JSON object: {{"x": <float>, "y": <float>}}
-  where (0.0, 0.0) = top-left, (1.0, 1.0) = bottom-right.
-  Each character MUST have a DIFFERENT position.
+    - image_location: Where this character will be placed on the scene image.
+      Return as a JSON object: {{"x": <float>, "y": <float>}}
+      where (0.0, 0.0) = top-left, (1.0, 1.0) = bottom-right.
+      CRITICAL: Use x values between 0.1 and 0.9 and y values between 0.2 and 0.8 to keep characters safely within the frame.
+      Each character MUST have a DIFFERENT position.
 - voice_description: ONLY two things separated by a comma:
   (1) gender using ONLY "male" or "female" in lowercase,
   (2) ONE emotion word from ONLY this list:
@@ -474,9 +475,9 @@ CRITICAL WRITING RULES:
                 "The video_prompt MUST clearly identify the speaking character by BOTH their name AND what they represent "
                 "(e.g. 'Sunshine the sun', 'Droplet the water droplet', 'Breezy the wind'). "
                 "It must also state their role (e.g. 'who provides energy to plants'). "
-                "Describe what EVERY other character in the scene is doing at that exact moment "
-                "(listening attentively, nodding, looking curious, reacting with surprise, glancing at the speaker, etc.) "
-                "and also identify each of them by name and what they represent."
+                "CRITICAL: To prevent the AI from animating the wrong character, you MUST explicitly state that all other characters are 'completely static and unmoving'. "
+                "Describe what EVERY other character in the scene is doing (e.g. 'watching attentively', 'listening', 'looking curious') but always include the phrase 'completely static and frozen' for them. "
+                "Identify each of them by name and what they represent."
                 if len(char_names_list) > 1
                 else
                 f"The only character in this scene is {char_names_list[0]}, who represents "
@@ -485,13 +486,27 @@ CRITICAL WRITING RULES:
                 "mention their role, and focus entirely on this character speaking."
             )
 
+            # Build position hints from x,y coords
+            def pos_hint(name):
+                pos = scene_pos.get(name, {})
+                x = float(pos.get("x", 0.5))
+                y = float(pos.get("y", 0.5))
+                h = "left" if x < 0.4 else ("right" if x > 0.6 else "center")
+                v = "top" if y < 0.4 else ("bottom" if y > 0.6 else "middle")
+                return f"{v} {h}"
+
+            pos_hints = "\n".join([
+                f"- {name}: {pos_hint(name)} of the frame"
+                for name in char_names_list
+            ])
+
             prompt = f"""You are writing a voice script for a children's educational animated video.
 
 THIS SCENE TEACHES: {sp['lesson_element']}
 BACKGROUND: {sp['background_description']}
 
-CHARACTER POSITIONS IN SCENE:
-{location_map}
+CHARACTER POSITIONS IN FRAME:
+{pos_hints}
 
 CHARACTER VOICES:
 {char_voice_info}
@@ -516,18 +531,24 @@ Return a JSON array. Each item must have EXACTLY these 4 fields:
 2. text: EXACTLY 15 to 20 words of natural dialogue.
 3. voice_description: ONLY gender and ONE emotion word separated by a comma.
    Example: "female, cheerful"
-4. video_prompt: MUST follow this EXACT format and nothing else — one sentence only:
-   "[SpeakerName] the [what speaker represents], who [speaker role], mouth moving in sync with speech, talking animation, while [OtherName] the [what they represent] listens. Background: [scene description]. 2D cartoon style."
+4. video_prompt: MUST follow this EXACT format — one sentence only:
+   "A cartoon [what speaker represents] called [SpeakerName] in the [position] of the frame is speaking, mouth clearly opening and closing in sync with speech, expressive animated cartoon face. [If other characters: Every other character, including a cartoon [what other represents] called [OtherName] in the [their position], remains completely static and frozen, watching the speaker.] [background description]. 2D cartoon illustration style, no humans, no people, no realistic faces."
 
    STRICT RULES:
-   - Use the CHARACTER IDENTITY MAP below for names and roles.
-   - Replace [SpeakerName], [what speaker represents], [speaker role], [OtherName], [what they represent], [scene description] with real values.
-   - If there is only one character, omit the "while..." part.
-   - Do NOT add any extra sentences, descriptions, or explanations beyond this format.
-   - Do NOT mention camera movement, zoom, pan, or transitions.
+   - ALWAYS start with "A cartoon" — describe the character as what they represent (sun, water droplet, cloud, etc), NEVER as a human.
+   - Use CHARACTER IDENTITY MAP for what each character represents.
+   - Use POSITION MAP for frame positions.
+   - Replace ALL bracketed values with real values.
+   - Omit the "other character" part if only one character is in the scene.
+   - DO NOT mention camera movement, zoom, pan, or transitions. Explicitly avoid words like "zoom in" or "close up".
+   - The framing MUST remain a wide shot showing the full scene; do not focus or move the camera toward the speaker.
+   - DO NOT describe human faces, bodies, skin, hair, or human expressions.
 
 CHARACTER IDENTITY MAP (name → what they represent):
 {char_identity_map}
+
+CHARACTER POSITION MAP:
+{pos_hints}
 
 Return ONLY the JSON array."""
 

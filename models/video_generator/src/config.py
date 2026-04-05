@@ -22,7 +22,7 @@ class GenerationConfig:
     default_prompt: str   = (
         "A cartoon character speaking expressively, "
         "mouth and lips moving clearly in sync with speech, "
-        "smooth fluid animation, high quality"
+        "smooth fluid animation, static wide shot, no zoom, no camera movement, high quality"
     )
 
 
@@ -31,10 +31,15 @@ class Config:
     model:           ModelConfig
     generation:      GenerationConfig
     negative_prompt: str = (
+        "human, person, people, man, woman, boy, girl, human face, human body, "
+        "realistic face, photorealistic, skin, hair, hands, fingers, human anatomy, "
         "low quality, worst quality, deformed, distorted, blurry, noisy, "
         "text, subtitles, captions, watermark, words, letters, typography, "
-        "moving background, camera movement, panning, zooming, shaking, parallax, "
-        "both characters talking simultaneously"
+        "moving background, camera movement, panning, zooming, zoom in, zoom out, "
+        "dolly in, dolly out, push in, pull back, truck, crane, tilt, pan, "
+        "rack focus, depth of field change, close-up, extreme close-up, "
+        "moving camera, handheld, camera shake, perspective shift, "
+        "shaking, parallax, both characters talking simultaneously"
     )
 
 

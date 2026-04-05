@@ -70,7 +70,7 @@ class VideoGeneratorModal:
         prompt:      str = None,
         seed:        int = 42,
     ) -> bytes:
-        clip_bytes, _ = self.gen.generate(
+        clip_bytes = self.gen.generate(
             image_bytes = image_bytes,
             audio_bytes = audio_bytes,
             prompt      = prompt,
@@ -138,6 +138,7 @@ def _build_scene_payloads(scenes, root, background_images, character_images, see
                 "background_name":    bg_name,
                 "frame_source":       frame_source,
                 "video_prompt":       shot.get("video_prompt"),
+                "negative_prompt":    shot.get("negative_prompt"),
                 "speaker":            shot.get("speaker", ""),
                 "characters_present": [
                     {"name": c["name"], "position": c["position"]}

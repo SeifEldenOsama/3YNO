@@ -113,11 +113,12 @@ def save_all(result: dict, out_dir: str = "output"):
                 f"voices/{shot_number}-{scene_id}.mp3"
             )
             shots_list.append({
-                "shot_id":      shot_number,
-                "name":         f"{shot_number}-{scene_id}",
-                "speaker":      line.get("speaker", ""),
-                "voice_path":   vpath,
-                "video_prompt": line.get("video_prompt", ""),
+                "shot_id":         shot_number,
+                "name":            f"{shot_number}-{scene_id}",
+                "speaker":         line.get("speaker", ""),
+                "voice_path":      vpath,
+                "video_prompt":    line.get("video_prompt", ""),
+                "negative_prompt": line.get("negative_prompt", ""),
             })
 
         scenes_flow.append({

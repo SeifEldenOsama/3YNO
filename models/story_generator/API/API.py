@@ -22,7 +22,6 @@ if not os.environ.get("MODAL_TASK_ID") and HF_TOKEN:
         check=True,
     )
 
-
 image = (
     modal.Image.debian_slim(python_version=PYTHON_VERSION)
     .pip_install(
@@ -121,14 +120,14 @@ class StoryGeneratorAPI:
 
         save_all(result, out_dir=out_dir)
 
-        story_name = lesson.strip().replace(" ", "_")[:30]
-        zip_path   = os.path.join(temp_dir, story_name)
+        zip_filename = "output"
+        zip_path   = os.path.join(temp_dir, zip_filename)
         shutil.make_archive(zip_path, "zip", out_dir)
 
         print("Done!", flush=True)
 
         return FileResponse(
             path       = zip_path + ".zip",
-            filename   = f"{story_name}.zip",
+            filename   = "output.zip",
             media_type = "application/zip",
         )

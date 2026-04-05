@@ -6,7 +6,7 @@ model:
   id:          "rootonchair/LTX-2-19b-distilled"
   pipeline:    "multimodalart/ltx2-audio-to-video"
   lora_id:     "Lightricks/LTX-2-19b-LoRA-Camera-Control-Static"
-  lora_scale:  0.8
+  lora_scale:  1.0
   cache_dir:   "/model-cache"
 
 generation:
@@ -21,7 +21,10 @@ generation:
 negative_prompt: >
   low quality, worst quality, deformed, distorted, blurry, noisy,
   text, subtitles, captions, watermark, words, letters, typography,
-  moving background, camera movement, panning, zooming, shaking, parallax
+  moving background, camera movement, panning, zooming, shaking, parallax,
+  zoom in, zoom out, dolly in, dolly out, push in, pull back, truck, crane,
+  tilt, pan, rack focus, depth of field change, close-up, extreme close-up,
+  moving camera, handheld, camera shake, perspective shift
 
 modal:
   app_name:       "video-generator"

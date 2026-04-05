@@ -53,22 +53,22 @@ def composite_frame(
         cx = float(position.get("x", 0.5))
         cy = float(position.get("y", 0.5))
 
-        if n_chars == 1:
-            char_h = int(H * 0.75)
-        elif is_speaker:
-            char_h = int(H * 0.70)
-        else:
-            char_h = int(H * 0.50)
+        # Fixed character scaling: characters maintain their relative size regardless of speaker status
+        # This prevents the 'closing in' effect and keeps the scene composition stable.
+        char_h = int(H * 0.55) 
 
         ratio    = char_h / char_img.height
         char_w   = int(char_img.width * ratio)
         char_img = char_img.resize((char_w, char_h), Image.LANCZOS)
 
+        # Fixed character positioning: 
+        # (cx, cy) is the center point in normalized 0.0-1.0 space.
         paste_x = int(cx * W) - char_w // 2
         paste_y = int(cy * H) - char_h // 2
 
-        paste_x = max(0, min(paste_x, W - char_w))
-        paste_y = max(0, min(paste_y, H - char_h))
+        # Clamp to canvas boundaries but keep the calculated center
+        paste_x = max(-char_w // 2, min(paste_x, W - char_w // 2))
+        paste_y = max(-char_h // 2, min(paste_y, H - char_h // 2))
 
         canvas.paste(char_img, (paste_x, paste_y), mask=char_img.split()[3])
         print(f"  Placed {char.get('name','?')} ({'speaker' if is_speaker else 'listener'}) at ({cx:.2f},{cy:.2f}) → {char_w}x{char_h}px")

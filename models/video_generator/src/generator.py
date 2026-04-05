@@ -3,6 +3,7 @@ import io
 import os
 import subprocess
 import tempfile
+import json
 
 import numpy as np
 from PIL import Image, ImageOps
@@ -64,7 +65,6 @@ def pad_audio(audio_bytes: bytes, pad_secs: float) -> tuple[str, float]:
         "ffprobe", "-v", "quiet", "-print_format", "json",
         "-show_streams", raw_path,
     ], capture_output=True, text=True, check=True)
-    import json
     duration = float(json.loads(probe.stdout)["streams"][0]["duration"])
 
     padded_path = raw_path.replace(suffix, "_padded.wav")
@@ -82,7 +82,6 @@ def pad_audio(audio_bytes: bytes, pad_secs: float) -> tuple[str, float]:
 
 
 def extract_frame_at(video_bytes: bytes, seek_from_end: float = 1.5) -> bytes:
-    import json
     with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
         f.write(video_bytes)
         video_path = f.name
@@ -115,7 +114,6 @@ def extract_frame_at(video_bytes: bytes, seek_from_end: float = 1.5) -> bytes:
 
 
 def trim_tail(video_bytes: bytes, trim_secs: float) -> bytes:
-    import json
     with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
         f.write(video_bytes)
         inp = f.name
@@ -198,12 +196,15 @@ class VideoGenerator:
         width, height = auto_resolution(raw, quality)
         image  = fit_image(raw, width, height)
 
+        STATIC_PREFIX = "The camera is completely static and does not move at all. Fixed wide shot. "
+        STATIC_SUFFIX = " The camera remains locked. No zoom, no dolly, no pan, no tilt."
+        prompt = STATIC_PREFIX + prompt.strip() + STATIC_SUFFIX
+
         padded_audio, total_duration = pad_audio(audio_bytes, pad_secs=tail_secs)
         num_frames = calc_num_frames(total_duration, self.cfg.generation.fps)
-        print(f"Prompt: {prompt[:80]}...")
+        print(f"Prompt: {prompt[:120]}...")
         print(f"Res: {width}x{height} | Frames: {num_frames} | Seed: {seed}")
 
-        import torch
         torch.cuda.empty_cache()
         generator = torch.Generator("cuda").manual_seed(seed)
 
@@ -275,9 +276,9 @@ class VideoGenerator:
         from src.compositor import composite_frame
 
         results          = {}
-        prev_clip_bytes  = None
         prev_frame_bytes = None
         reference_bytes  = None
+        prev_bg_name     = None
 
         first_bg_name  = shots[0]["background_name"]
         first_bg_bytes = background_images[first_bg_name]
@@ -285,13 +286,17 @@ class VideoGenerator:
         width, height  = auto_resolution(raw_ref, quality=self.cfg.generation.quality)
         print(f"Output resolution: {width}x{height}")
 
-        TAIL_SECS = 1.5
+        RELAX_SECS = 1.5
+        DARK_BUFFER_SECS = 2.0
+        # TAIL_SECS must equal DARK_BUFFER_SECS + RELAX_SECS so that trim_tail()
+        # removes exactly the padded silence and never cuts into real voice audio.
+        TAIL_SECS = DARK_BUFFER_SECS + RELAX_SECS  # 3.5s
 
         for i, shot in enumerate(shots):
             shot_id   = shot["shot_id"]
             bg_name   = shot["background_name"]
             prompt    = shot.get("video_prompt") or self.cfg.generation.default_prompt
-            neg       = self.cfg.negative_prompt
+            neg       = shot.get("negative_prompt") or self.cfg.negative_prompt
             scene_num = shot["scene_number"]
             shot_num  = shot["shot_number"]
             speaker   = shot.get("speaker", "")
@@ -299,11 +304,16 @@ class VideoGenerator:
             print(f"\n{'='*60}")
             print(f"Scene {scene_num} | Shot {shot_num} | {shot_id} | speaker={speaker}")
 
-            bg_bytes     = background_images.get(bg_name)
-            scene_chars  = shot.get("characters_present", [])
+            bg_bytes    = background_images.get(bg_name)
+            scene_chars = shot.get("characters_present", [])
 
-            if scene_chars:
-                print("  Compositing fresh frame...")
+            bg_changed       = bg_name != prev_bg_name
+            need_composite   = (i == 0) or bg_changed
+            prev_bg_name     = bg_name
+
+            if need_composite and scene_chars:
+                reason = "first shot" if i == 0 else f"background changed → {bg_name}"
+                print(f"  Compositing fresh frame ({reason})...")
                 chars_in_shot = []
                 for cp in scene_chars:
                     name     = cp["name"] if isinstance(cp, dict) else cp
@@ -316,7 +326,7 @@ class VideoGenerator:
                         "name":        name,
                         "image_bytes": c_bytes,
                         "position":    position,
-                        "is_speaker":  name == speaker,
+                        "is_speaker":  False,
                     })
                 frame_bytes = composite_frame(
                     background_bytes = bg_bytes,
@@ -326,11 +336,17 @@ class VideoGenerator:
                 if reference_bytes is None:
                     reference_bytes = frame_bytes
                 print(f"  Frame composited: {len(frame_bytes)/1024:.1f} KB")
+
             elif prev_frame_bytes is not None:
-                print("  Using color-matched frame from previous clip...")
+                print("  Using last frame from previous clip as starting image...")
                 frame_bytes = prev_frame_bytes
-            else:
+
+            elif bg_bytes is not None:
+                print("  WARNING: No previous frame and no characters — using bare background.")
                 frame_bytes = bg_bytes
+
+            else:
+                raise RuntimeError(f"No starting frame available for shot {shot_id}")
 
             audio_bytes_shot = audio_files.get(shot_id)
             if audio_bytes_shot is None:
@@ -346,7 +362,8 @@ class VideoGenerator:
                 tail_secs=TAIL_SECS,
             )
 
-            frame_raw = extract_frame_at(raw_clip, seek_from_end=TAIL_SECS / 2)
+            frame_raw = extract_frame_at(raw_clip, seek_from_end=DARK_BUFFER_SECS + (TAIL_SECS - RELAX_SECS) / 2)
+            
             if reference_bytes is not None:
                 ref_img   = Image.open(io.BytesIO(reference_bytes)).convert("RGB")
                 frame_img = Image.open(io.BytesIO(frame_raw)).convert("RGB")
@@ -355,12 +372,11 @@ class VideoGenerator:
                 buf       = io.BytesIO()
                 matched.save(buf, format="PNG")
                 prev_frame_bytes = buf.getvalue()
-                print("  Color-matched bridge frame to reference lighting")
+                print("  Color-matched last frame → stored as next shot's starting image")
             else:
                 prev_frame_bytes = frame_raw
 
-            results[shot_id] = trim_tail(raw_clip, trim_secs=TAIL_SECS)
-            prev_clip_bytes  = raw_clip
+            results[shot_id] = trim_tail(raw_clip, trim_secs=DARK_BUFFER_SECS + RELAX_SECS)
             print(f"  Clip done: {len(results[shot_id])/1024:.1f} KB")
 
         print(f"\nPipeline complete. {len(results)} clips generated.")

@@ -531,18 +531,26 @@ Return a JSON array. Each item must have EXACTLY these 4 fields:
 2. text: EXACTLY 15 to 20 words of natural dialogue.
 3. voice_description: ONLY gender and ONE emotion word separated by a comma.
    Example: "female, cheerful"
-4. video_prompt: MUST follow this EXACT format — one sentence only:
-   "A cartoon [what speaker represents] called [SpeakerName] in the [position] of the frame is speaking, mouth clearly opening and closing in sync with speech, expressive animated cartoon face. [If other characters: Every other character, including a cartoon [what other represents] called [OtherName] in the [their position], remains completely static and frozen, watching the speaker.] [background description]. 2D cartoon illustration style, no humans, no people, no realistic faces."
+4. video_prompt: MUST follow this EXACT structure sentence by sentence:
+   Sentence 1: "A beautiful landscape with [what char1 represents] and [what char2 represents]."
+   Sentence 2: "[What the STATIC character represents, capitalized] in the [their position] remains completely static, its eyes wide and its smile frozen."
+   Sentence 3: "[What the SPEAKING character represents, capitalized] in the [their position] is the only character moving."
+   Sentence 4: "[What the SPEAKING character represents, capitalized] speaks the words in the voice, its mouth opening and closing in perfect synchronization."
+   Sentence 5: "[What the SPEAKING character represents, capitalized]\'s eyes blink and its body [a natural movement word matching their type, e.g. ripples/shimmers/puffs/glows] as it talks."
 
    STRICT RULES:
-   - ALWAYS start with "A cartoon" — describe the character as what they represent (sun, water droplet, cloud, etc), NEVER as a human.
+   - Use ONLY what each character represents (e.g. "the sun", "the water droplet", "the cloud") — NEVER use character names.
    - Use CHARACTER IDENTITY MAP for what each character represents.
    - Use POSITION MAP for frame positions.
-   - Replace ALL bracketed values with real values.
-   - Omit the "other character" part if only one character is in the scene.
-   - DO NOT mention camera movement, zoom, pan, or transitions. Explicitly avoid words like "zoom in" or "close up".
-   - The framing MUST remain a wide shot showing the full scene; do not focus or move the camera toward the speaker.
-   - DO NOT describe human faces, bodies, skin, hair, or human expressions.
+   - Follow the 5 sentences in EXACT order — do not add or remove sentences.
+   - If there is only one character in the scene, skip sentence 2.
+
+5. negative_prompt: MUST follow this EXACT structure:
+   "[what the STATIC character represents] speaking, [what the STATIC character represents] mouth moving, [what the STATIC character represents] animating, [what the STATIC character represents] blinking, [what the STATIC character represents] changing expression"
+
+   STRICT RULES:
+   - Use ONLY what the static character represents (e.g. "the sun", "the water droplet") — NEVER use character names.
+   - If there is only one character in the scene, set negative_prompt to "".
 
 CHARACTER IDENTITY MAP (name → what they represent):
 {char_identity_map}

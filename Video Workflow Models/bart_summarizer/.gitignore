@@ -21,7 +21,6 @@ outputs/
 pytorch_model*
 
 # Data
-*.csv
 /data/
 
 # Logs

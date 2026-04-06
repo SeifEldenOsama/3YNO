@@ -19,10 +19,9 @@ flux-lora/
 │   ├── inference.py          ← Image generation with trained LoRA
 │   └── uploader.py           ← HuggingFace Hub upload / download
 │
-├── modal/
-│   ├── app.py                ← Modal image + volume definition
-│   ├── train.py              ← Remote training function
-│   └── inference.py          ← Remote inference function
+├── cloud/
+│   ├── train.py              ← Remote training function (Modal H100)
+│   └── inference.py          ← Remote inference function (Modal)
 │
 ├── scripts/
 │   ├── train.py              ← Local training CLI
@@ -78,14 +77,14 @@ modal token set --token-id YOUR_ID --token-secret YOUR_SECRET
 ```bash
 make modal-train
 # or:
-modal run modal/train.py
+modal run cloud/train.py
 ```
 
 ### 5. Run inference on Modal
 ```bash
 make modal-inference
 # with custom prompt:
-modal run modal/inference.py --prompt "a warrior character" --num-images 4
+modal run cloud/inference.py --prompt "a warrior character" --num-images 4
 ```
 
 ### 6. Download results from Modal volume
@@ -159,11 +158,11 @@ python scripts/upload.py --download --path ./downloaded_lora
 ### Modal
 ```bash
 # Train
-modal run modal/train.py
+modal run cloud/train.py
 
 # Inference
-modal run modal/inference.py
-modal run modal/inference.py --prompt "a hero" --num-images 8 --seed 0
+modal run cloud/inference.py
+modal run cloud/inference.py --prompt "a hero" --num-images 8 --seed 0
 ```
 
 ---

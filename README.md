@@ -21,7 +21,7 @@ The application follows a sophisticated multi-stage pipeline to ensure education
 2. **Narrative Transformation**: Extracted content is reframed into a compelling story or narrative structure, making it easier to digest.
 3. **Character Creation**: AI-driven generation of characters that guide the learner through the narrative.
 4. **Voice Generation**: AI-driven synthesis of character voices using fine-tuned Text-to-Speech models.
-5. **Video Synthesis**: (In Development) Final conversion of the narrative and characters into an explanatory video.
+5. **Video Synthesis**: Final conversion of the narrative and characters into an explanatory video.
 
 ---
 
@@ -29,11 +29,12 @@ The application follows a sophisticated multi-stage pipeline to ensure education
 
 | Module | Role in Pipeline | Model | Approach | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **[Summarizer](./models/bart_summarizer)** | Content Extraction & Scientific Distillation | BART-large-CNN | LoRA fine-tuning | Active Development |
-| **[Story Generator](./models/story_generator)** | Narrative Transformation & Character Planning | Qwen2.5-32B-Instruct | Prompt Engineering | Active Development |
-| **[Character Generator](./models/flux_lora_project)** | Character & Background Image Generation | FLUX.1-dev | LoRA fine-tuning | Active Development |
-| **[Harmony TTS](./models/Harmony_TTS)** | Voice Generation for Characters | Parler-TTS-mini-v1 | Full fine-tuning | Active Development |
-| **[Video Generator](./models/video_generator)** | Character Video Synthesis | LTX-2-19b-distilled | Audio-to-video + Camera Control LoRA | Active Development |
+| **[Summarizer](./Video%20Workflow%20Models/bart_summarizer)** | Content Extraction & Scientific Distillation | BART-large-CNN | LoRA fine-tuning |
+| **[Story Generator](./Video%20Workflow%20Models/story_generator)** | Narrative Transformation & Character Planning | Qwen2.5-32B-Instruct | Prompt Engineering |
+| **[Character Generator](./Video%20Workflow%20Models/flux_lora_project)** | Character & Background Image Generation | FLUX.1-dev | LoRA fine-tuning |
+| **[Harmony TTS](./Video%20Workflow%20Models/Harmony_TTS)** | Voice Generation for Characters | Parler-TTS-mini-v1 | Full fine-tuning |
+| **[Video Generator](./Video%20Workflow%20Models/video_generator)** | Character Video Synthesis | LTX-2-19b-distilled | Audio-to-video + Camera Control LoRA |
+| **[3YNO Chatbot](./3YNO%20Chatbot)** | Dyslexia Support AI Assistant | Gemini 2.5 Flash | Prompt Engineering |
 
 ---
 
@@ -67,7 +68,7 @@ Uses [Qwen/Qwen2.5-32B-Instruct](https://huggingface.co/Qwen/Qwen2.5-32B-Instruc
 | Quantization | 4-bit NF4 via `bitsandbytes` |
 | GPU | A100 80GB |
 | Cloud runtime | [Modal](https://modal.com) |
-| Module path | [`./models/story_generator`](./models/story_generator) |
+| Module path | [`./Video Workflow Models/story_generator`](./Video%20Workflow%20Models/story_generator) |
 
 ---
 
@@ -97,7 +98,7 @@ Takes a character image and a voice audio clip produced by Harmony TTS, and synt
 | Approach | Audio-to-video inference (no fine-tuning) |
 | GPU | H200 141GB |
 | Inference steps | 8 (distilled sigmas) |
-| Module path | [`./models/video_generator`](./models/video_generator) |
+| Module path | [`./Video Workflow Models/video_generator`](./Video%20Workflow%20Models/video_generator) |
 
 ---
 
@@ -114,6 +115,20 @@ Full fine-tuning of [parler-tts/parler-tts-mini-v1](https://huggingface.co/parle
 | Learning rate | 1e-5 (cosine) |
 | GPU | H100 80GB |
 | HF Repo | [SeifElden2342532/Harmony_Parler_TTS](https://huggingface.co/SeifElden2342532/Harmony_Parler_TTS) |
+
+---
+
+### 3YNO Chatbot — Gemini 2.5 Flash
+
+A conversational AI assistant specialised in dyslexia support and visual learning. Powered by Google Gemini 2.5 Flash and deployed on Modal with a FastAPI endpoint. Provides parents, teachers, and caregivers with expert guidance on dyslexia signs, strategies, and resources.
+
+| | |
+|---|---|
+| Model | `gemini-2.5-flash` |
+| Approach | Prompt engineering (system prompt) |
+| API | Google Generative AI |
+| Cloud runtime | [Modal](https://modal.com) |
+| Module path | [`./3YNO Chatbot`](./3YNO%20Chatbot) |
 
 ---
 
@@ -142,4 +157,5 @@ Refer to individual module READMEs for specific dependency installation.
 - [x] Character & Background Image Generation (FLUX.1-dev LoRA)
 - [x] Voice Generation for each character (Harmony TTS)
 - [x] Apply each voice generated for each character with its image, to generate small video scene for each one
-- [ ] Integrate all the video scenes into one educational interactive video
+- [x] Integrate all the video scenes into one educational interactive video
+- [ ] 3YNO Chatbot — dyslexia support AI assistant (Gemini 2.5 Flash)

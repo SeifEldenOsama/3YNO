@@ -7,7 +7,7 @@ LoRA fine-tuning of [facebook/bart-large-cnn](https://huggingface.co/facebook/ba
 ## Project Structure
 
 ```
-led_summarizer/
+bart_summarizer/
 ├── config.yaml          ← all settings
 ├── .env                 ← credentials (never commit)
 ├── .env.example

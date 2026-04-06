@@ -20,9 +20,6 @@ outputs/
 *.pkl
 pytorch_model*
 
-# Data
-/data/
-
 # Logs
 logs/
 runs/

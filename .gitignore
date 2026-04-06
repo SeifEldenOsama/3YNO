@@ -132,5 +132,4 @@ dmypy.json
 # Data and Models
 models/summarizer/checkpoints/
 models/summarizer/logs/
-*.csv
 # *.png (Allowing logo in assets)

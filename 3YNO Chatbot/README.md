@@ -172,6 +172,9 @@ The system prompt equips 3YNO with deep knowledge across:
 
 ---
 
+## Huggingface Space 
+https://huggingface.co/spaces/SeifElden2342532/3YNO-Chatbot
+
 ## License
 
 Apache 2.0

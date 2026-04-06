@@ -286,11 +286,11 @@ class VideoGenerator:
         width, height  = auto_resolution(raw_ref, quality=self.cfg.generation.quality)
         print(f"Output resolution: {width}x{height}")
 
-        RELAX_SECS = 1.5
-        DARK_BUFFER_SECS = 2.0
-        # TAIL_SECS must equal DARK_BUFFER_SECS + RELAX_SECS so that trim_tail()
+        RELAX_SECS       = 2.5   # silence after voice ends — character settles
+        DARK_BUFFER_SECS = 2.0   # extra dark seconds trimmed before delivery
+        # TAIL_SECS must equal DARK_BUFFER_SECS + RELAX_SECS so trim_tail()
         # removes exactly the padded silence and never cuts into real voice audio.
-        TAIL_SECS = DARK_BUFFER_SECS + RELAX_SECS  # 3.5s
+        TAIL_SECS = DARK_BUFFER_SECS + RELAX_SECS  # 4.5s
 
         for i, shot in enumerate(shots):
             shot_id   = shot["shot_id"]
@@ -362,7 +362,9 @@ class VideoGenerator:
                 tail_secs=TAIL_SECS,
             )
 
-            frame_raw = extract_frame_at(raw_clip, seek_from_end=DARK_BUFFER_SECS + (TAIL_SECS - RELAX_SECS) / 2)
+            # Grab the frame exactly 2s after the voice finishes.
+            # Voice ends at TAIL_SECS from the end, so 2s after = TAIL_SECS - 2.0 from end.
+            frame_raw = extract_frame_at(raw_clip, seek_from_end=TAIL_SECS - 2.0)
             
             if reference_bytes is not None:
                 ref_img   = Image.open(io.BytesIO(reference_bytes)).convert("RGB")

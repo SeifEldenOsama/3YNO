@@ -199,7 +199,7 @@ First, identify:
 Based on this, decide:
 - num_characters: one character PER key concept or actor in the lesson (min 2, max 6)
 - num_backgrounds: one background PER distinct setting in the lesson (min 2, max 6)
-- num_scenes: one scene PER learning step (min 3, max 10)
+- num_scenes: one scene PER learning step (min 2, max 6)
 
 CRITICAL: Every scene must teach a real, specific part of the lesson.
 
@@ -520,15 +520,16 @@ CRITICAL RULES:
 - Keep dialogue natural and fun
 
 LINE LENGTH RULES:
-- Every "text" field MUST be between 15 and 20 words. Count carefully.
-- NEVER write fewer than 15 words or more than 20 words per line.
+- Every "text" field MUST be between 38 and 50 words. Count carefully.
+- NEVER write fewer than 38 words or more than 50 words per line.
+- This ensures each line takes between 15 and 20 seconds to speak aloud.
 
 Story passage to adapt into dialogue:
 {sp["passage"]}
 
 Return a JSON array. Each item must have EXACTLY these 4 fields:
 1. speaker: MUST be exactly one of: {", ".join(char_names_list)}
-2. text: EXACTLY 15 to 20 words of natural dialogue.
+2. text: EXACTLY 38 to 50 words of natural dialogue (this must take 15-20 seconds to speak).
 3. voice_description: ONLY gender and ONE emotion word separated by a comma.
    Example: "female, cheerful"
 4. video_prompt: MUST follow this EXACT structure sentence by sentence:

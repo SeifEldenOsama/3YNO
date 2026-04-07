@@ -28,12 +28,12 @@ The application follows a sophisticated multi-stage pipeline to ensure education
 ## Repository Structure
 
 | Module | Role in Pipeline | Model | Approach |
-| :--- | :--- | :--- | :--- | :--- |
+| :--- | :--- | :--- | :--- |
 | **[Summarizer](./Video%20Workflow%20Models/bart_summarizer)** | Content Extraction & Scientific Distillation | BART-large-CNN | LoRA fine-tuning |
 | **[Story Generator](./Video%20Workflow%20Models/story_generator)** | Narrative Transformation & Character Planning | Qwen2.5-32B-Instruct | Prompt Engineering |
 | **[Character Generator](./Video%20Workflow%20Models/flux_lora_project)** | Character & Background Image Generation | FLUX.1-dev | LoRA fine-tuning |
 | **[Harmony TTS](./Video%20Workflow%20Models/Harmony_TTS)** | Voice Generation for Characters | Parler-TTS-mini-v1 | Full fine-tuning |
-| **[Video Generator](./Video%20Workflow%20Models/video_generator)** | Character Video Synthesis | LTX-2-19b-distilled | Audio-to-video + Camera Control LoRA |
+| **[Video Generator](./Video%20Workflow%20Models/video_generator)** | Character Video Synthesis | LTX-2-19b-distilled | Audio-to-video + Camera Control |
 | **[3YNO Chatbot](./3YNO%20Chatbot)** | Dyslexia Support AI Assistant | Gemini 2.5 Flash | Prompt Engineering |
 
 ---

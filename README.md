@@ -27,7 +27,7 @@ The application follows a sophisticated multi-stage pipeline to ensure education
 
 ## Repository Structure
 
-| Module | Role in Pipeline | Model | Approach | Status |
+| Module | Role in Pipeline | Model | Approach |
 | :--- | :--- | :--- | :--- | :--- |
 | **[Summarizer](./Video%20Workflow%20Models/bart_summarizer)** | Content Extraction & Scientific Distillation | BART-large-CNN | LoRA fine-tuning |
 | **[Story Generator](./Video%20Workflow%20Models/story_generator)** | Narrative Transformation & Character Planning | Qwen2.5-32B-Instruct | Prompt Engineering |

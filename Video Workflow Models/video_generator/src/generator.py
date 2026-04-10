@@ -44,15 +44,6 @@ def fit_image(image: Image.Image, w: int, h: int) -> Image.Image:
     return ImageOps.fit(image, (w, h), method=Image.LANCZOS, centering=(0.5, 0.5))
 
 
-def match_color(frame_img: Image.Image, reference_img: Image.Image) -> Image.Image:
-    src = np.array(frame_img,     dtype=np.float32)
-    ref = np.array(reference_img, dtype=np.float32)
-    out = src.copy()
-    for c in range(3):
-        s_mean, s_std = src[..., c].mean(), src[..., c].std() + 1e-6
-        r_mean, r_std = ref[..., c].mean(), ref[..., c].std() + 1e-6
-        out[..., c] = (src[..., c] - s_mean) / s_std * r_std + r_mean
-    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
 
 
 def pad_audio(audio_bytes: bytes, pad_secs: float) -> tuple[str, float]:
@@ -81,36 +72,6 @@ def pad_audio(audio_bytes: bytes, pad_secs: float) -> tuple[str, float]:
     return padded_path, total_duration
 
 
-def extract_frame_at(video_bytes: bytes, seek_from_end: float = 1.5) -> bytes:
-    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
-        f.write(video_bytes)
-        video_path = f.name
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-        frame_path = f.name
-
-    probe = subprocess.run([
-        "ffprobe", "-v", "quiet", "-print_format", "json",
-        "-show_streams", video_path,
-    ], capture_output=True, text=True, check=True)
-    duration = float(json.loads(probe.stdout)["streams"][0]["duration"])
-    seek_to  = max(0.0, duration - seek_from_end)
-
-    subprocess.run([
-        "ffmpeg", "-y",
-        "-ss", str(seek_to), "-i", video_path,
-        "-vframes", "1", "-q:v", "1", frame_path,
-    ], check=True, capture_output=True)
-
-    size = os.path.getsize(frame_path)
-    print(f"Frame extracted at -{seek_from_end}s ({size/1024:.1f} KB)")
-    if size < 1000:
-        raise RuntimeError(f"Frame too small ({size} bytes)")
-
-    frame_bytes = open(frame_path, "rb").read()
-    from pathlib import Path as _P
-    _P(video_path).unlink(missing_ok=True)
-    _P(frame_path).unlink(missing_ok=True)
-    return frame_bytes
 
 
 def trim_tail(video_bytes: bytes, trim_secs: float) -> bytes:
@@ -275,10 +236,7 @@ class VideoGenerator:
     ) -> dict[str, bytes]:
         from src.compositor import composite_frame
 
-        results          = {}
-        prev_frame_bytes = None
-        reference_bytes  = None
-        prev_bg_name     = None
+        results = {}
 
         first_bg_name  = shots[0]["background_name"]
         first_bg_bytes = background_images[first_bg_name]
@@ -288,8 +246,6 @@ class VideoGenerator:
 
         RELAX_SECS       = 2.5   # silence after voice ends — character settles
         DARK_BUFFER_SECS = 2.0   # extra dark seconds trimmed before delivery
-        # TAIL_SECS must equal DARK_BUFFER_SECS + RELAX_SECS so trim_tail()
-        # removes exactly the padded silence and never cuts into real voice audio.
         TAIL_SECS = DARK_BUFFER_SECS + RELAX_SECS  # 4.5s
 
         for i, shot in enumerate(shots):
@@ -307,13 +263,9 @@ class VideoGenerator:
             bg_bytes    = background_images.get(bg_name)
             scene_chars = shot.get("characters_present", [])
 
-            bg_changed       = bg_name != prev_bg_name
-            need_composite   = (i == 0) or bg_changed
-            prev_bg_name     = bg_name
-
-            if need_composite and scene_chars:
-                reason = "first shot" if i == 0 else f"background changed → {bg_name}"
-                print(f"  Compositing fresh frame ({reason})...")
+            # ── ALWAYS composite a fresh frame for every shot ──
+            if scene_chars:
+                print(f"  Compositing fresh frame for shot {shot_id}...")
                 chars_in_shot = []
                 for cp in scene_chars:
                     name     = cp["name"] if isinstance(cp, dict) else cp
@@ -333,18 +285,10 @@ class VideoGenerator:
                     characters       = chars_in_shot,
                     output_size      = (width, height),
                 )
-                if reference_bytes is None:
-                    reference_bytes = frame_bytes
                 print(f"  Frame composited: {len(frame_bytes)/1024:.1f} KB")
-
-            elif prev_frame_bytes is not None:
-                print("  Using last frame from previous clip as starting image...")
-                frame_bytes = prev_frame_bytes
-
             elif bg_bytes is not None:
-                print("  WARNING: No previous frame and no characters — using bare background.")
+                print("  WARNING: No characters — using bare background.")
                 frame_bytes = bg_bytes
-
             else:
                 raise RuntimeError(f"No starting frame available for shot {shot_id}")
 
@@ -361,22 +305,6 @@ class VideoGenerator:
                 seed=seed,
                 tail_secs=TAIL_SECS,
             )
-
-            # Grab the frame exactly 2s after the voice finishes.
-            # Voice ends at TAIL_SECS from the end, so 2s after = TAIL_SECS - 2.0 from end.
-            frame_raw = extract_frame_at(raw_clip, seek_from_end=TAIL_SECS - 2.0)
-            
-            if reference_bytes is not None:
-                ref_img   = Image.open(io.BytesIO(reference_bytes)).convert("RGB")
-                frame_img = Image.open(io.BytesIO(frame_raw)).convert("RGB")
-                ref_img   = ref_img.resize(frame_img.size, Image.LANCZOS)
-                matched   = match_color(frame_img, ref_img)
-                buf       = io.BytesIO()
-                matched.save(buf, format="PNG")
-                prev_frame_bytes = buf.getvalue()
-                print("  Color-matched last frame → stored as next shot's starting image")
-            else:
-                prev_frame_bytes = frame_raw
 
             results[shot_id] = trim_tail(raw_clip, trim_secs=DARK_BUFFER_SECS + RELAX_SECS)
             print(f"  Clip done: {len(results[shot_id])/1024:.1f} KB")

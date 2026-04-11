@@ -252,11 +252,11 @@ class VideoGenerator:
         width, height  = auto_resolution(raw_ref, quality=self.cfg.generation.quality)
         print(f"Output resolution: {width}x{height}")
 
-        RELAX_SECS       = 2.5   # silence after voice ends — character settles
-        DARK_BUFFER_SECS = 2.0   # extra dark seconds trimmed before delivery
-        TAIL_SECS = DARK_BUFFER_SECS + RELAX_SECS  # 4.5s
+        RELAX_SECS       = 2.5
+        DARK_BUFFER_SECS = 2.0
+        TAIL_SECS = DARK_BUFFER_SECS + RELAX_SECS
 
-        for i, shot in enumerate(shots):
+        for shot in shots:
             shot_id   = shot["shot_id"]
             bg_name   = shot["background_name"]
             prompt    = shot.get("video_prompt") or self.cfg.generation.default_prompt
@@ -271,9 +271,8 @@ class VideoGenerator:
             bg_bytes    = background_images.get(bg_name)
             scene_chars = shot.get("characters_present", [])
 
-            # ── ALWAYS composite a fresh frame for every shot ──
             if scene_chars:
-                print(f"  Compositing fresh frame for shot {shot_id}...")
+                print(f"  Compositing frame for shot {shot_id}...")
                 chars_in_shot = []
                 for cp in scene_chars:
                     name     = cp["name"] if isinstance(cp, dict) else cp
@@ -295,13 +294,12 @@ class VideoGenerator:
                 )
                 print(f"  Frame composited: {len(frame_bytes)/1024:.1f} KB")
 
-                # DEBUG: save composited frame to verify characters look correct before video model
                 debug_path = f"debug_composite_scene{scene_num}_shot{shot_num}.png"
                 with open(debug_path, "wb") as _df:
                     _df.write(frame_bytes)
-                print(f"  DEBUG frame saved → {debug_path}")
+                print(f"  DEBUG frame saved -> {debug_path}")
             elif bg_bytes is not None:
-                print("  WARNING: No characters — using bare background.")
+                print("  WARNING: No characters -- using bare background.")
                 frame_bytes = bg_bytes
             else:
                 raise RuntimeError(f"No starting frame available for shot {shot_id}")
@@ -319,7 +317,6 @@ class VideoGenerator:
                 seed=seed,
                 tail_secs=TAIL_SECS,
             )
-
             results[shot_id] = trim_tail(raw_clip, trim_secs=DARK_BUFFER_SECS + RELAX_SECS)
             print(f"  Clip done: {len(results[shot_id])/1024:.1f} KB")
 

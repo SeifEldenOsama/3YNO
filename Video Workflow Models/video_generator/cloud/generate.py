@@ -43,52 +43,31 @@ image = (
 app = modal.App("video-generator", image=image)
 
 
-@app.cls(
+@app.function(
     gpu=GPU,
     volumes={MODEL_CACHE: volume},
     timeout=TIMEOUT,
     scaledown_window=SCALEDOWN,
     secrets=[modal.Secret.from_dict({"HF_TOKEN": HF_TOKEN})],
 )
-class VideoGeneratorModal:
+def generate_shot(payload: dict) -> dict:
+    """Each call runs in its own container with its own GPU."""
+    import sys
+    sys.path.insert(0, "/root/project")
+    from src.generator import VideoGenerator
+    from src.config import load_config
 
-    @modal.enter()
-    def load_model(self):
-        import sys
-        sys.path.insert(0, "/root/project")
-        from src.generator import VideoGenerator
-        from src.config import load_config
-        cfg      = load_config("/root/project/config.yaml")
-        self.gen = VideoGenerator(cfg)
-        self.gen.load_model()
+    cfg = load_config("/root/project/config.yaml")
+    gen = VideoGenerator(cfg)
+    gen.load_model()
 
-    @modal.method()
-    def generate(
-        self,
-        image_bytes: bytes,
-        audio_bytes: bytes,
-        prompt:      str = None,
-        seed:        int = 42,
-    ) -> bytes:
-        clip_bytes = self.gen.generate(
-            image_bytes = image_bytes,
-            audio_bytes = audio_bytes,
-            prompt      = prompt,
-            seed        = seed,
-        )
-        return clip_bytes
-
-    @modal.method()
-    def generate_scene(self, payload: dict) -> dict:
-        import sys
-        sys.path.insert(0, "/root/project")
-        return self.gen.generate_pipeline(
-            shots             = payload["shots"],
-            background_images = payload["background_images"],
-            character_images  = payload["character_images"],
-            audio_files       = payload["audio_files"],
-            seed              = payload["seed"],
-        )
+    return gen.generate_pipeline(
+        shots             = [payload["shot"]],
+        background_images = payload["background_images"],
+        character_images  = payload["character_images"],
+        audio_files       = payload["audio_files"],
+        seed              = payload["seed"],
+    )
 
 
 def _extract_zip(zip_path: str):
@@ -114,52 +93,45 @@ def _load_assets(root: Path):
     return background_images, character_images
 
 
-def _build_scene_payloads(scenes, root, background_images, character_images, seed):
-    payloads    = []
-    shot_order  = []
+def _build_shot_payloads(scenes, root, background_images, character_images, seed):
+    """Flatten ALL shots from ALL scenes — one payload per shot."""
+    payloads   = []
+    shot_order = []
 
     for scene in scenes:
         scene_id    = scene["scene_id"]
         bg_name     = Path(scene["background"]).stem
         scene_chars = scene["characters"]
 
-        scene_shots = []
-        scene_audio = {}
-
         for i, shot in enumerate(scene["shots"]):
-            shot_id      = f"s{scene_id}_shot{shot['shot_id']}"
-            shot_num     = i + 1
-            frame_source = "composite" if shot_num == 1 else "previous_clip"
-
-            scene_shots.append({
-                "shot_id":            shot_id,
-                "scene_number":       scene_id,
-                "shot_number":        shot_num,
-                "background_name":    bg_name,
-                "frame_source":       frame_source,
-                "video_prompt":       shot.get("video_prompt"),
-                "negative_prompt":    shot.get("negative_prompt"),
-                "speaker":            shot.get("speaker", ""),
-                "characters_present": [
-                    {"name": c["name"], "position": c["position"]}
-                    for c in scene_chars
-                ],
-            })
-            shot_order.append(shot_id)
+            shot_id  = f"s{scene_id}_shot{shot['shot_id']}"
+            shot_num = i + 1
 
             voice_path = root / shot["voice_path"]
-            if voice_path.exists():
-                scene_audio[shot_id] = voice_path.read_bytes()
-            else:
+            if not voice_path.exists():
                 print(f"WARNING: Audio not found for {shot_id}: {voice_path}")
+                continue
 
-        payloads.append({
-            "shots":             scene_shots,
-            "background_images": background_images,
-            "character_images":  character_images,
-            "audio_files":       scene_audio,
-            "seed":              seed,
-        })
+            payloads.append({
+                "shot": {
+                    "shot_id":            shot_id,
+                    "scene_number":       scene_id,
+                    "shot_number":        shot_num,
+                    "background_name":    bg_name,
+                    "video_prompt":       shot.get("video_prompt"),
+                    "negative_prompt":    shot.get("negative_prompt"),
+                    "speaker":            shot.get("speaker", ""),
+                    "characters_present": [
+                        {"name": c["name"], "position": c["position"]}
+                        for c in scene_chars
+                    ],
+                },
+                "background_images": background_images,
+                "character_images":  character_images,
+                "audio_files":       {shot_id: voice_path.read_bytes()},
+                "seed":              seed,
+            })
+            shot_order.append(shot_id)
 
     return payloads, shot_order
 
@@ -216,27 +188,6 @@ def _save_and_concat(results, shot_order, clips_dir, tmp_dir, output_path):
 
 
 @app.local_entrypoint()
-def main(
-    image_path:  str = "test/frame.png",
-    audio_path:  str = "test/audio.wav",
-    output_path: str = "output.mp4",
-    prompt:      str = None,
-    seed:        int = 42,
-):
-    if not Path(image_path).exists() or not Path(audio_path).exists():
-        print(f"Files not found: {image_path} or {audio_path}")
-        return
-    video_bytes = VideoGeneratorModal().generate.remote(
-        image_bytes = Path(image_path).read_bytes(),
-        audio_bytes = Path(audio_path).read_bytes(),
-        prompt      = prompt,
-        seed        = seed,
-    )
-    Path(output_path).write_bytes(video_bytes)
-    print(f"Saved: {output_path}")
-
-
-@app.local_entrypoint()
 def run_from_zip(
     zip_path:    str = "outputs.zip",
     output_path: str = "final_video.mp4",
@@ -251,16 +202,16 @@ def run_from_zip(
     background_images, character_images = _load_assets(root)
     print(f"Backgrounds: {list(background_images)} | Characters: {list(character_images)}")
 
-    payloads, shot_order = _build_scene_payloads(
+    payloads, shot_order = _build_shot_payloads(
         scenes, root, background_images, character_images, seed
     )
-    print(f"Shots: {len(shot_order)} across {len(payloads)} scenes")
+    print(f"Total shots: {len(payloads)} — each gets its own GPU container")
 
-    gen     = VideoGeneratorModal()
     results = {}
 
-    print("\nRunning scenes in parallel...")
-    for scene_result in gen.generate_scene.map(payloads):
-        results.update(scene_result)
+    # .map() on a standalone @app.function spawns one container per item — truly parallel
+    print("\nRunning all shots in parallel...")
+    for shot_result in generate_shot.map(payloads):
+        results.update(shot_result)
 
     _save_and_concat(results, shot_order, clips_dir, tmp_dir, output_path)

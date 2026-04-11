@@ -53,54 +53,118 @@ image = (
 app = modal.App("video-generator-api", image=image)
 
 
-
-@app.cls(
+# ── Standalone function — Modal spawns one container per shot, truly parallel ──
+@app.function(
     gpu=GPU,
     volumes={MODEL_CACHE: volume},
     timeout=TIMEOUT,
     scaledown_window=SCALEDOWN,
     secrets=[modal.Secret.from_name("my-huggingface-secret")],
 )
-class VideoGeneratorModal:
+def generate_shot(payload: dict) -> dict:
+    """Each call runs in its own container with its own GPU."""
+    import sys
+    sys.path.insert(0, "/root/project")
+    from src.generator import VideoGenerator
+    from src.config import load_config
 
-    @modal.enter()
-    def load_model(self):
-        import sys
-        sys.path.insert(0, "/root/project")
-        from src.generator import VideoGenerator
-        from src.config import load_config
-        cfg      = load_config("/root/project/config.yaml")
-        self.gen = VideoGenerator(cfg)
-        self.gen.load_model()
-        print("Model ready ✓")
+    cfg = load_config("/root/project/config.yaml")
+    gen = VideoGenerator(cfg)
+    gen.load_model()
 
-    @modal.method()
-    def generate(
-        self,
-        image_bytes: bytes,
-        audio_bytes: bytes,
-        prompt:      str = None,
-        seed:        int = 42,
-    ) -> bytes:
-        return self.gen.generate(
-            image_bytes=image_bytes,
-            audio_bytes=audio_bytes,
-            prompt=prompt,
-            seed=seed,
-        )
+    return gen.generate_pipeline(
+        shots             = [payload["shot"]],
+        background_images = payload["background_images"],
+        character_images  = payload["character_images"],
+        audio_files       = payload["audio_files"],
+        seed              = payload["seed"],
+    )
 
-    @modal.method()
-    def generate_scene(self, payload: dict) -> dict:
-        import sys
-        sys.path.insert(0, "/root/project")
-        return self.gen.generate_pipeline(
-            shots             = payload["shots"],
-            background_images = payload["background_images"],
-            character_images  = payload["character_images"],
-            audio_files       = payload["audio_files"],
-            seed              = payload["seed"],
-        )
 
+def _build_shot_payloads(scenes, root, background_images, character_images, seed):
+    """Flatten ALL shots from ALL scenes — one payload per shot."""
+    payloads   = []
+    shot_order = []
+
+    for scene in scenes:
+        scene_id    = scene["scene_id"]
+        bg_name     = Path(scene["background"]).stem
+        scene_chars = scene["characters"]
+
+        for i, shot in enumerate(scene["shots"]):
+            shot_id  = f"s{scene_id}_shot{shot['shot_id']}"
+            shot_num = i + 1
+
+            voice_path = root / shot["voice_path"]
+            if not voice_path.exists():
+                print(f"WARNING: Audio not found for {shot_id}: {voice_path}")
+                continue
+
+            payloads.append({
+                "shot": {
+                    "shot_id":            shot_id,
+                    "scene_number":       scene_id,
+                    "shot_number":        shot_num,
+                    "background_name":    bg_name,
+                    "video_prompt":       shot.get("video_prompt"),
+                    "negative_prompt":    shot.get("negative_prompt"),
+                    "speaker":            shot.get("speaker", ""),
+                    "characters_present": [
+                        {"name": c["name"], "position": c["position"]}
+                        for c in scene_chars
+                    ],
+                },
+                "background_images": background_images,
+                "character_images":  character_images,
+                "audio_files":       {shot_id: voice_path.read_bytes()},
+                "seed":              seed,
+            })
+            shot_order.append(shot_id)
+
+    return payloads, shot_order
+
+
+def _build_shot_payloads_from_bytes(scenes, audio_files_map, background_images, character_images, seed):
+    """Same as above but audio comes as bytes dict (used by API endpoint)."""
+    payloads   = []
+    shot_order = []
+
+    for scene in scenes:
+        scene_id    = scene["scene_id"]
+        bg_name     = Path(scene["background"]).stem
+        scene_chars = scene["characters"]
+
+        for i, shot in enumerate(scene["shots"]):
+            shot_id    = f"s{scene_id}_shot{shot['shot_id']}"
+            shot_num   = i + 1
+            audio_bytes = audio_files_map.get(shot["voice_path"])
+
+            if not audio_bytes:
+                print(f"WARNING: Audio not found for {shot_id}")
+                continue
+
+            payloads.append({
+                "shot": {
+                    "shot_id":            shot_id,
+                    "scene_number":       scene_id,
+                    "shot_number":        shot_num,
+                    "background_name":    bg_name,
+                    "video_prompt":       shot.get("video_prompt"),
+                    "negative_prompt":    shot.get("negative_prompt"),
+                    "speaker":            shot.get("speaker", ""),
+                    "characters_present": [
+                        {"name": c["name"], "position": c["position"]}
+                        for c in scene_chars
+                    ],
+                },
+                "background_images": background_images,
+                "character_images":  character_images,
+                "audio_files":       {shot_id: audio_bytes},
+                "seed":              seed,
+            })
+            shot_order.append(shot_id)
+
+    return payloads, shot_order
 
 
 @app.function(
@@ -131,49 +195,14 @@ def run_pipeline_from_zip(zip_bytes: bytes, seed: int = 42) -> bytes:
     shots_flow = json.loads((root / "shots_flow.json").read_text())
     scenes     = shots_flow["scenes"]
 
-    # Build payloads
-    payloads   = []
-    shot_order = []
-    for scene in scenes:
-        scene_id    = scene["scene_id"]
-        bg_name     = Path(scene["background"]).stem
-        scene_chars = scene["characters"]
-        scene_shots = []
-        scene_audio = {}
-        for i, shot in enumerate(scene["shots"]):
-            shot_id      = f"s{scene_id}_shot{shot['shot_id']}"
-            frame_source = "composite" if i == 0 else "previous_clip"
-            scene_shots.append({
-                "shot_id":            shot_id,
-                "scene_number":       scene_id,
-                "shot_number":        i + 1,
-                "background_name":    bg_name,
-                "frame_source":       frame_source,
-                "video_prompt":       shot.get("video_prompt"),
-                "negative_prompt":    shot.get("negative_prompt"),
-                "speaker":            shot.get("speaker", ""),
-                "characters_present": [
-                    {"name": c["name"], "position": c["position"]}
-                    for c in scene_chars
-                ],
-            })
-            shot_order.append(shot_id)
-            voice_path = root / shot["voice_path"]
-            if voice_path.exists():
-                scene_audio[shot_id] = voice_path.read_bytes()
+    payloads, shot_order = _build_shot_payloads(
+        scenes, root, background_images, character_images, seed
+    )
+    print(f"Total shots: {len(payloads)} — each gets its own GPU container")
 
-        payloads.append({
-            "shots":             scene_shots,
-            "background_images": background_images,
-            "character_images":  character_images,
-            "audio_files":       scene_audio,
-            "seed":              seed,
-        })
-
-    gen     = VideoGeneratorModal()
     results = {}
-    for scene_result in gen.generate_scene.map(payloads):
-        results.update(scene_result)
+    for shot_result in generate_shot.map(payloads):
+        results.update(shot_result)
 
     clips_dir = tmp_dir / "clips"
     clips_dir.mkdir()
@@ -203,44 +232,16 @@ def run_pipeline_from_zip(zip_bytes: bytes, seed: int = 42) -> bytes:
     return output.read_bytes()
 
 
-
 web_app = FastAPI(title="Video Generator API")
 
 
 @app.function(
     image=image,
-    memory=2048, 
+    memory=2048,
     timeout=TIMEOUT,
 )
 @modal.asgi_app()
 def fastapi_app():
-
-    @web_app.post(
-        "/generate",
-        response_class=Response,
-        summary="Generate a single clip from an image + audio",
-    )
-    async def generate(
-        image: UploadFile = File(...),
-        audio: UploadFile = File(...),
-        prompt: str       = Form(default=None),
-        seed:   int       = Form(default=42),
-    ):
-        image_bytes = await image.read()
-        audio_bytes = await audio.read()
-
-        if not image_bytes:
-            raise HTTPException(status_code=400, detail="image file is empty")
-        if not audio_bytes:
-            raise HTTPException(status_code=400, detail="audio file is empty")
-
-        video_bytes = VideoGeneratorModal().generate.remote(
-            image_bytes=image_bytes,
-            audio_bytes=audio_bytes,
-            prompt=prompt,
-            seed=seed,
-        )
-        return Response(content=video_bytes, media_type="video/mp4")
 
     @web_app.post(
         "/generate-from-zip",

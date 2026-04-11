@@ -199,7 +199,7 @@ First, identify:
 Based on this, decide:
 - num_characters: one character PER key concept or actor in the lesson (min 2, max 6)
 - num_backgrounds: one background PER distinct setting in the lesson (min 2, max 6)
-- num_scenes: one scene PER learning step (min 2, max 6)
+- num_scenes: one scene PER learning step (min 2, max 4)
 
 CRITICAL: Every scene must teach a real, specific part of the lesson.
 
@@ -245,8 +245,17 @@ For each CHARACTER provide:
     - image_location: Where this character will be placed on the scene image.
       Return as a JSON object: {{"x": <float>, "y": <float>}}
       where (0.0, 0.0) = top-left, (1.0, 1.0) = bottom-right.
-      CRITICAL: Use x values between 0.1 and 0.9 and y values between 0.2 and 0.8 to keep characters safely within the frame.
+      CRITICAL: Use x values between 0.2 and 0.8 and y values between 0.3 and 0.7 to keep characters safely visible and away from the frame borders.
       Each character MUST have a DIFFERENT position.
+      CRITICAL: Since there are {num_characters} characters, NO character may be placed at the center of the frame. Avoid x values between 0.4 and 0.6 combined with y values between 0.4 and 0.6. Place characters in clearly separated zones, for example: bottom-left (x: 0.2–0.35, y: 0.55–0.7), top-right (x: 0.65–0.8, y: 0.3–0.45), bottom-right (x: 0.65–0.8, y: 0.55–0.7), top-left (x: 0.2–0.35, y: 0.3–0.45).
+- visual_noun: A SHORT 2-5 word phrase starting with "the" that describes HOW THIS CHARACTER PHYSICALLY LOOKS IN THE IMAGE.
+  This is pasted directly into video prompts so the AI video model must be able to identify the character from this description alone.
+  Describe its COLOR and SHAPE — what would someone see if they looked at it: "the brown spiky ball", "the small green tree", "the red mushroom", "the blue water droplet", "the yellow sun with rays", "the white cloud".
+  CRITICAL rules:
+  * Include the dominant COLOR and SHAPE — never just a type name like "the tree" or "the fungus"
+  * Never use the character name
+  * Never use abstract concepts
+  * Must match the visual_description of the character exactly
 - voice_description: ONLY two things separated by a comma:
   (1) gender using ONLY "male" or "female" in lowercase,
   (2) ONE emotion word from ONLY this list:
@@ -323,6 +332,7 @@ Create EXACTLY {num_scenes} scenes. Rules:
 - Every scene must have a clear "lesson_element" that is a specific accurate fact from the lesson
 - Only use character names from: {char_names}
 - Only use background names from: {bg_names}
+- POSITION RULE: All characters must use x values between 0.2 and 0.8 and y values between 0.3 and 0.7 to stay safely visible within the frame. When a scene has more than one character, NO character may be placed at the center. Avoid x values between 0.4 and 0.6 combined with y values between 0.4 and 0.6. Place characters in clearly separated corner zones: bottom-left (x: 0.2–0.35, y: 0.55–0.7), top-right (x: 0.65–0.8, y: 0.3–0.45), bottom-right (x: 0.65–0.8, y: 0.55–0.7), top-left (x: 0.2–0.35, y: 0.3–0.45).
 
 Return a JSON array of exactly {num_scenes} scene objects:
 [
@@ -411,7 +421,7 @@ CRITICAL WRITING RULES:
 - Characters speak and act AS their lesson concept
 - Use simple words and short sentences (age 5-8)
 - Cheerful and warm tone
-- Length: 4-6 short paragraphs
+- Length: 2-3 short paragraphs
 - ONLY use characters listed above
 - Return ONLY the story text, no titles or labels
 {interact_rule}"""
@@ -453,8 +463,12 @@ CRITICAL WRITING RULES:
             ])
 
             # Build a lookup of what each character represents (their real-world identity)
+            def _identity_line(name):
+                vn  = char_lookup[name].get('visual_noun', 'the character')
+                wtr = char_lookup[name].get('what_they_represent', char_lookup[name].get('role', name))
+                return '- ' + name + ": visual_noun = '" + vn + "', what_they_represent = '" + wtr + "'"
             char_identity_map = "\n".join([
-                f"- {name} = {char_lookup[name].get('what_they_represent', char_lookup[name].get('role', name))}"
+                _identity_line(name)
                 for name in char_names_list if name in char_lookup
             ])
 
@@ -491,8 +505,9 @@ CRITICAL WRITING RULES:
                 pos = scene_pos.get(name, {})
                 x = float(pos.get("x", 0.5))
                 y = float(pos.get("y", 0.5))
-                h = "left" if x < 0.4 else ("right" if x > 0.6 else "center")
-                v = "top" if y < 0.4 else ("bottom" if y > 0.6 else "middle")
+                multi = len(char_names_list) > 1
+                h = "left" if x < 0.4 else ("right" if x > 0.6 else ("left" if multi else "center"))
+                v = "top" if y < 0.4 else ("bottom" if y > 0.6 else ("bottom" if multi else "middle"))
                 return f"{v} {h}"
 
             pos_hints = "\n".join([
@@ -532,25 +547,28 @@ Return a JSON array. Each item must have EXACTLY these 4 fields:
 2. text: EXACTLY 38 to 50 words of natural dialogue (this must take 15-20 seconds to speak).
 3. voice_description: ONLY gender and ONE emotion word separated by a comma.
    Example: "female, cheerful"
-4. video_prompt: MUST follow this EXACT structure sentence by sentence:
-   Sentence 1: "A beautiful landscape with [what char1 represents] and [what char2 represents]."
-   Sentence 2: "[What the STATIC character represents, capitalized] in the [their position] remains completely static, its eyes wide and its smile frozen."
-   Sentence 3: "[What the SPEAKING character represents, capitalized] in the [their position] is the only character moving."
-   Sentence 4: "[What the SPEAKING character represents, capitalized] speaks the words in the voice, its mouth opening and closing in perfect synchronization."
-   Sentence 5: "[What the SPEAKING character represents, capitalized]\'s eyes blink and its body [a natural movement word matching their type, e.g. ripples/shimmers/puffs/glows] as it talks."
+4. video_prompt: MUST follow this EXACT structure (fill in bracketed placeholders):
+
+   "BACKGROUND: [copy the exact background visual_description here, do not summarize or shorten it]. A beautiful cartoon scene with characters that do not move unless specified. SPEAKING CHARACTER: [visual_noun of SPEAKING character, capitalized] located in the [speaker position] of the frame. [visual_noun of SPEAKING character, capitalized] is the ONLY character that speaks and moves in this entire clip. [visual_noun of SPEAKING character, capitalized] mouth opens and closes in perfect sync with the audio voice. [visual_noun of SPEAKING character, capitalized] eyes blink naturally while speaking. [visual_noun of SPEAKING character, capitalized] body animates gently while it talks. STATIC CHARACTER: [visual_noun of STATIC character 1, capitalized] is COMPLETELY FROZEN and absolutely still. [visual_noun of STATIC character 1, capitalized] does NOT speak. [visual_noun of STATIC character 1, capitalized] mouth is CLOSED and does NOT move at all. [visual_noun of STATIC character 1, capitalized] does NOT blink. [visual_noun of STATIC character 1, capitalized] does NOT animate in any way. [visual_noun of STATIC character 1, capitalized] is like a painted statue — zero movement. [Repeat the STATIC CHARACTER block for every additional static character.] Camera is completely static. No zoom. No movement. Fixed wide shot."
 
    STRICT RULES:
-   - Use ONLY what each character represents (e.g. "the sun", "the water droplet", "the cloud") — NEVER use character names.
-   - Use CHARACTER IDENTITY MAP for what each character represents.
-   - Use POSITION MAP for frame positions.
-   - Follow the 5 sentences in EXACT order — do not add or remove sentences.
-   - If there is only one character in the scene, skip sentence 2.
+   - Use visual_noun for EVERY character reference (e.g. "The brown spiky ball", "The small green tree") — NEVER use character names.
+   - Capitalize the first letter of each visual_noun when it starts a sentence.
+   - Use POSITION MAP for frame positions (e.g. "bottom left", "middle center", "middle right").
+   - Add one full STATIC CHARACTER block per non-speaking character — do not merge or skip any.
+   - If there is only one character in the scene, omit all STATIC CHARACTER blocks.
 
-5. negative_prompt: MUST follow this EXACT structure:
-   "[what the STATIC character represents] speaking, [what the STATIC character represents] mouth moving, [what the STATIC character represents] animating, [what the STATIC character represents] blinking, [what the STATIC character represents] changing expression"
+5. negative_prompt: MUST follow this EXACT structure (one entry per static character, then shared endings):
+
+   For EACH static character, list ALL of the following phrases (replace [visual_noun] with that character's visual_noun):
+   "[visual_noun] speaking, [visual_noun] talking, [visual_noun] mouth moving, [visual_noun] mouth open, [visual_noun] lip sync, [visual_noun] animating, [visual_noun] blinking, [visual_noun] moving, [visual_noun] gesturing, [visual_noun] facial expression changing"
+
+   After listing all static characters, append this fixed ending:
+   "two characters speaking simultaneously, multiple characters talking, both characters moving, all characters moving, background character talking, zoom in, zoom out, close up, extreme close up, camera movement, dolly, pan, tilt, character growing, character enlarging, character approaching camera, character disappearing, character fading, character vanishing"
 
    STRICT RULES:
-   - Use ONLY what the static character represents (e.g. "the sun", "the water droplet") — NEVER use character names.
+   - Use ONLY the visual_noun of each static character — NEVER use character names.
+   - All phrases for all static characters are joined with ", " into one single flat string.
    - If there is only one character in the scene, set negative_prompt to "".
 
 CHARACTER IDENTITY MAP (name → what they represent):

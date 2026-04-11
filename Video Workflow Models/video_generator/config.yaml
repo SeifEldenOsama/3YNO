@@ -24,7 +24,13 @@ negative_prompt: >
   moving background, camera movement, panning, zooming, shaking, parallax,
   zoom in, zoom out, dolly in, dolly out, push in, pull back, truck, crane,
   tilt, pan, rack focus, depth of field change, close-up, extreme close-up,
-  moving camera, handheld, camera shake, perspective shift
+  moving camera, handheld, camera shake, perspective shift,
+  character enlarging, character growing, character approaching camera,
+  character scaling up, size change, perspective change, foreground zoom,
+  dynamic shot, cinematic zoom, push in shot, tracking shot,
+  missing canopy, bare trunk only, tree without leaves, green disappearing,
+  character parts missing, incomplete character, character merging with background,
+  character fading into background, lost character details, character transformation
 
 modal:
   app_name:       "video-generator"

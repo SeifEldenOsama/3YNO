@@ -157,8 +157,16 @@ class VideoGenerator:
         width, height = auto_resolution(raw, quality)
         image  = fit_image(raw, width, height)
 
-        STATIC_PREFIX = "The camera is completely static and does not move at all. Fixed wide shot. "
-        STATIC_SUFFIX = " The camera remains locked. No zoom, no dolly, no pan, no tilt."
+        # The Static Camera LoRA responds best when camera control tokens
+        # appear at the START and are the dominant instruction.
+        # User prompt is appended after — animation details only, no camera words.
+        STATIC_PREFIX = (
+            "Static camera. Fixed wide shot. Camera locked. No zoom. No movement. "
+            "No dolly. No pan. No tilt. No camera shake. "
+        )
+        STATIC_SUFFIX = (
+            " Camera does not move. Static shot. Wide angle. No zoom in. No close up."
+        )
         prompt = STATIC_PREFIX + prompt.strip() + STATIC_SUFFIX
 
         padded_audio, total_duration = pad_audio(audio_bytes, pad_secs=tail_secs)
@@ -286,6 +294,12 @@ class VideoGenerator:
                     output_size      = (width, height),
                 )
                 print(f"  Frame composited: {len(frame_bytes)/1024:.1f} KB")
+
+                # DEBUG: save composited frame to verify characters look correct before video model
+                debug_path = f"debug_composite_scene{scene_num}_shot{shot_num}.png"
+                with open(debug_path, "wb") as _df:
+                    _df.write(frame_bytes)
+                print(f"  DEBUG frame saved → {debug_path}")
             elif bg_bytes is not None:
                 print("  WARNING: No characters — using bare background.")
                 frame_bytes = bg_bytes

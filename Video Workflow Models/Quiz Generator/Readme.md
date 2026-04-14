@@ -71,7 +71,10 @@ Response:
   "total": 5,
   "feedback": []
 }
-🛠 Tech Stack
+```
+---
+
+ Tech Stack
 Python
 FastAPI
 LangChain

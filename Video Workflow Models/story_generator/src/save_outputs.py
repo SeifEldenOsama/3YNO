@@ -72,7 +72,7 @@ def save_all(result: dict, out_dir: str = "output"):
         scene_id = scene["scene_number"]
         for shot_number, line in enumerate(scene["script"], start=1):
             voice_name  = f"{shot_number}-{scene_id}"
-            output_path = f"voices/{voice_name}.mp3"
+            output_path = f"voices/{voice_name}.wav"
             voices_json.append({
                 "shot_id":     shot_number,
                 "scene_id":    scene_id,
@@ -110,7 +110,7 @@ def save_all(result: dict, out_dir: str = "output"):
         for shot_number, line in enumerate(scene["script"], start=1):
             vpath = voice_path_lookup.get(
                 (scene_id, shot_number),
-                f"voices/{shot_number}-{scene_id}.mp3"
+                f"voices/{shot_number}-{scene_id}.wav"
             )
             shots_list.append({
                 "shot_id":         shot_number,

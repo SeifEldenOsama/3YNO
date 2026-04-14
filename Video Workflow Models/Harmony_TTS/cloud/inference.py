@@ -1,74 +1,45 @@
 import modal
 import os
-from dotenv import load_dotenv
-load_dotenv(".env")
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
-VOLUME_NAME    = "tts-dataset-storage"
-GPU            = "H100:1"
-PYTHON_VERSION = "3.11"
-MODEL_DIR      = "/vol/harmony-tts-output"
-
-HF_TOKEN = os.getenv("HF_TOKEN", "")
-
-volume = modal.Volume.from_name(VOLUME_NAME, create_if_missing=True)
+PYTHON_VERSION  = "3.11"
+GEMINI_API_KEYS = os.environ.get("GEMINI_API_KEYS", "")
 
 image = (
-    modal.Image.from_registry(
-        "nvidia/cuda:12.1.1-devel-ubuntu22.04",
-        add_python=PYTHON_VERSION,
-    )
-    .apt_install("git", "ffmpeg", "libsndfile1")
+    modal.Image.debian_slim(python_version=PYTHON_VERSION)
     .pip_install(
-        "torch==2.4.1",
-        "torchaudio==2.4.1",
-        "transformers==4.46.1",
-        "soundfile",
-        "scipy",
-        "pyyaml",
+        "google-genai",
         "python-dotenv",
-        "parler-tts @ git+https://github.com/huggingface/parler-tts.git",
-        extra_index_url="https://download.pytorch.org/whl/cu121",
     )
-    .add_local_dir("src",          remote_path="/root/project/src")
-    .add_local_file("config.yaml", remote_path="/root/project/config.yaml")
-    .add_local_file(".env",        remote_path="/root/project/.env")
+    .add_local_dir("src", remote_path="/root/project/src")
 )
 
-app = modal.App("harmony-tts", image=image)
+app = modal.App("gemini-tts", image=image)
 
 
 @app.function(
-    volumes={"/vol": volume},
-    timeout=60 * 10,
-    gpu=GPU,
-    secrets=[modal.Secret.from_dict({"HF_TOKEN": HF_TOKEN})],
-    env={
-        "FORCE_LIBSNDFILE":            "1",
-        "HF_AUDIO_DISABLE_TORCHCODEC": "1",
-    },
+    image=image,
+    secrets=[modal.Secret.from_dict({"GEMINI_API_KEYS": GEMINI_API_KEYS})],
+    timeout=120,
+    memory=512,
 )
 def generate_remote(
-    text:        str = "Hello, this is Harmony TTS speaking.",
-    description: str = "A female speaker delivers a cheerful and clear speech.",
+    text:        str = "Hello, this is Gemini TTS speaking.",
+    description: str = "Aoede A calm and friendly female voice with a warm clear tone.",
 ) -> bytes:
     import sys
     sys.path.insert(0, "/root/project")
+    from src.inference import GeminiTTSInference
 
-    from src.config import load_config
-    from src.inference import HarmonyTTSInference
-
-    cfg    = load_config("/root/project/config.yaml")
-    runner = HarmonyTTSInference(cfg, model_path=MODEL_DIR)
-    path   = runner.generate(text, description, output_path="/tmp/output.wav")
-
-    with open(path, "rb") as f:
-        return f.read()
+    tts = GeminiTTSInference()
+    return tts.generate_bytes(text=text, description=description)
 
 
 @app.local_entrypoint()
 def main(
-    text:        str = "Hello, this is Harmony TTS speaking.",
-    description: str = "A female speaker delivers a cheerful and clear speech.",
+    text:        str = "Hello, this is Gemini TTS speaking.",
+    description: str = "Aoede A calm and friendly female voice with a warm clear tone.",
     output:      str = "output.wav",
 ):
     audio_bytes = generate_remote.remote(text=text, description=description)

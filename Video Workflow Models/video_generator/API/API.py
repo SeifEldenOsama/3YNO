@@ -22,7 +22,7 @@ if not os.environ.get("MODAL_TASK_ID"):
 VOLUME_NAME    = "ltx2-model-cache"
 GPU            = "H200"
 TIMEOUT        = 7200
-SCALEDOWN      = 3600
+SCALEDOWN      = 60
 PYTHON_VERSION = "3.12"
 MODEL_CACHE    = "/model-cache"
 

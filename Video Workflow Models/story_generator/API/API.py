@@ -94,6 +94,7 @@ class StoryGeneratorAPI:
         outline = gen.generate_outline(
             lesson, characters, backgrounds, num_scenes, lesson_steps
         )
+        outline = gen._normalize_outline_names(outline, characters)
 
         print("Stage 3/4 — Writing passages...", flush=True)
         passages = gen.generate_passages(

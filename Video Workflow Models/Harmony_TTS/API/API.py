@@ -1,91 +1,115 @@
 import modal
-import io
+import os
+import json
+import base64
+from dotenv import load_dotenv, find_dotenv
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import Response, JSONResponse
+from pydantic import BaseModel
+
+load_dotenv(find_dotenv())
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .pip_install(
-        "torch",
-        "parler-tts",
-        "transformers",
-        "soundfile",
-        "numpy",
-        "accelerate",
+        "google-genai",
         "fastapi[standard]",
+        "python-dotenv",
     )
+    .add_local_dir("src", remote_path="/root/project/src")
 )
 
-app = modal.App("parler-tts-api", image=image)
+app = modal.App("gemini-tts-api", image=image)
 
-MODEL_ID = "SeifElden2342532/Harmony_Parler_TTS"
-
-volume = modal.Volume.from_name("parler-tts-cache", create_if_missing=True)
-CACHE_DIR = "/model-cache"
+GEMINI_API_KEYS = os.environ.get("GEMINI_API_KEYS", "")
 
 
-@app.cls(
-    gpu="T4",
-    volumes={CACHE_DIR: volume},
-    timeout=300,
-    container_idle_timeout=120,
+@app.function(
+    image=image,
+    secrets=[modal.Secret.from_dict({"GEMINI_API_KEYS": GEMINI_API_KEYS})],
+    timeout=500,
+    memory=512,
 )
-class TTSModel:
-
-    @modal.enter()
-    def load(self):
-        import torch
-        from parler_tts import ParlerTTSForConditionalGeneration
-        from transformers import AutoTokenizer
-
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = ParlerTTSForConditionalGeneration.from_pretrained(
-            MODEL_ID, cache_dir=CACHE_DIR
-        ).to(self.device)
-        self.tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, cache_dir=CACHE_DIR)
-
-    @modal.method()
-    def generate(self, description: str, prompt_text: str) -> bytes:
-        import torch
-        import soundfile as sf
-
-        input_ids = self.tokenizer(description, return_tensors="pt").input_ids.to(self.device)
-        prompt_input_ids = self.tokenizer(prompt_text, return_tensors="pt").input_ids.to(self.device)
-
-        with torch.inference_mode():
-            generated = self.model.generate(
-                input_ids=input_ids,
-                prompt_input_ids=prompt_input_ids,
-            )
-
-        audio = generated.cpu().numpy().squeeze()
-        buf = io.BytesIO()
-        sf.write(buf, audio, self.model.config.sampling_rate, format="WAV")
-        buf.seek(0)
-        return buf.read()
+def generate_tts(description: str, text: str) -> bytes:
+    """Generate single TTS audio using Gemini with random key fallback."""
+    import sys
+    sys.path.insert(0, "/root/project")
+    from src.inference import GeminiTTSInference
+    tts = GeminiTTSInference()
+    return tts.generate_bytes(text=text, description=description)
 
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import Response
-from pydantic import BaseModel
+@app.function(
+    image=image,
+    secrets=[modal.Secret.from_dict({"GEMINI_API_KEYS": GEMINI_API_KEYS})],
+    timeout=500,
+    memory=1024,
+)
+def generate_tts_batch(requests: list[dict]) -> list[bytes]:
+    """Generate multiple TTS clips in parallel, each with a different random key."""
+    import sys
+    sys.path.insert(0, "/root/project")
+    from src.inference import generate_parallel
+    return generate_parallel(requests)
 
-web_app = FastAPI(title="Parler TTS API")
+
+web_app = FastAPI(title="Gemini TTS API")
 
 
 class TTSRequest(BaseModel):
-    description: str = "A calm male voice with medium speed and clear audio"
+    description: str = "Aoede A calm and friendly female voice with a warm clear tone."
     text: str
 
 
-@app.function()
+class TTSBatchItem(BaseModel):
+    description: str
+    text: str
+
+
+class TTSBatchRequest(BaseModel):
+    requests: list[TTSBatchItem]
+
+
+@app.function(
+    image=image,
+    memory=512,
+    timeout=500,
+)
 @modal.asgi_app()
 def fastapi_app():
 
     @web_app.post("/synthesize", response_class=Response)
     async def synthesize(req: TTSRequest):
+        """Generate a single voice clip."""
         if not req.text.strip():
             raise HTTPException(status_code=400, detail="`text` must not be empty.")
-        tts = TTSModel()
-        wav_bytes = tts.generate.remote(req.description, req.text)
+        wav_bytes = await generate_tts.remote.aio(req.description, req.text)
         return Response(content=wav_bytes, media_type="audio/wav")
+
+    @web_app.post("/synthesize-batch")
+    async def synthesize_batch(req: TTSBatchRequest):
+        """Generate multiple voice clips in parallel, each using a different API key.
+        Returns a JSON list of base64-encoded WAV files in the same order as input.
+        """
+        if not req.requests:
+            raise HTTPException(status_code=400, detail="requests list is empty.")
+        if len(req.requests) > 50:
+            raise HTTPException(status_code=400, detail="Max 50 requests per batch.")
+
+        raw_requests = [{"text": r.text, "description": r.description} for r in req.requests]
+        wav_list = await generate_tts_batch.remote.aio(raw_requests)
+
+        return JSONResponse(content={
+            "count": len(wav_list),
+            "results": [
+                {
+                    "index": i,
+                    "audio_base64": base64.b64encode(wav).decode("utf-8"),
+                    "format": "wav",
+                }
+                for i, wav in enumerate(wav_list)
+            ]
+        })
 
     @web_app.get("/health")
     async def health():

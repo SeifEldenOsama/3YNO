@@ -4,80 +4,19 @@ import re
 import random
 import os
 
-VOICE_TEMPLATES = [
-    "A {gender} speaker delivers a {style} explanation in a clear teaching voice.",
-    "This recording features a {gender} voice with a {style} speaking style.",
-    "A {style} narration presented by a {gender} teacher.",
-    "A {gender} educator explains the topic using a {style} tone.",
-    "A clear and {style} explanation spoken by a {gender} voice.",
-    "This audio contains a {gender} speaker using a {style} delivery.",
-    "A {style} teaching narration performed by a {gender} individual.",
-    "A professional {gender} voice speaking in a {style} manner.",
-    "A calm and informative {style} explanation from a {gender} speaker.",
-    "A {gender} teacher presents the topic with a {style} approach.",
-    "A {style} educational explanation delivered by a {gender} voice.",
-    "A natural {gender} voice expressing a {style} teaching style.",
-    "A {gender} narrator speaks with a {style} tone for learning purposes.",
-    "A friendly {style} explanation provided by a {gender} speaker.",
-    "A focused {style} teaching voice from a {gender} educator.",
-    "This sample includes a {gender} voice using a {style} narration style.",
-    "A structured {style} explanation spoken by a {gender} teacher.",
-    "A {gender} speaker communicates the lesson in a {style} way.",
-    "An educational {style} narration performed by a {gender} voice.",
-    "A confident {gender} speaker delivering a {style} explanation.",
-    "A simple and {style} teaching narration from a {gender} educator.",
-    "A {gender} instructional voice with a {style} expression.",
-    "A clear {style} lesson explained by a {gender} speaker.",
-    "A composed {gender} voice presenting content in a {style} tone.",
-    "A {style} learning-focused narration by a {gender} teacher.",
-    "A professional educational explanation in a {style} voice by a {gender} speaker.",
-    "A {gender} speaker delivers knowledge using a {style} teaching tone.",
-    "A smooth and {style} explanation spoken by a {gender} voice.",
-    "A {style} classroom-style narration from a {gender} educator.",
-    "A direct and {style} explanation presented by a {gender} speaker.",
-    "An engaging {style} presentation given by a {gender} instructor.",
-    "A {gender} narrator provides a {style} breakdown of the subject matter.",
-    "The {gender} voice offers a {style} and academic delivery.",
-    "A precise {style} lecture spoken by a {gender} academic.",
-    "In a {style} manner, the {gender} speaker guides the listener through the topic.",
-    "A highly articulate {gender} voice performing a {style} narration.",
-    "The {style} quality of this {gender} speaker is perfect for educational content.",
-    "A {gender} speaker uses an authoritative yet {style} tone.",
-    "This {style} tutorial is narrated by a steady {gender} voice.",
-    "A warm {gender} speaker provides a {style} instructional overview.",
-    "The audio showcases a {gender} voice with a distinct {style} cadence.",
-    "An articulate {style} explanation by a {gender} voice actor.",
-    "A {gender} speaker adopts a {style} persona for this educational clip.",
-    "This {style} delivery is performed by a clear-spoken {gender} individual.",
-    "A {style} and methodical explanation from a {gender} speaker.",
-    "The {gender} educator uses a {style} rhythm throughout the recording.",
-    "A well-paced {style} narration delivered by a {gender} voice.",
-    "A {gender} voice guides the lesson with a {style} and clear approach.",
-    "The recording captures a {gender} speaker in a {style} teaching moment.",
-    "A {style} and expressive {gender} voice recounts the educational material.",
-    "This {gender} speaker provides a consistent {style} flow for learning.",
-    "A balanced {style} tone is used by the {gender} narrator here.",
-    "An insightful {style} explanation spoken by a {gender} specialist.",
-    "The {gender} speaker maintains a {style} presence throughout the audio.",
-    "A clear-cut {style} teaching style from a {gender} professional.",
-    "This {gender} voice sounds both helpful and {style} in its delivery.",
-    "A {style} pedagogical narration by a {gender} speaker.",
-    "The {gender} speaker conveys complex ideas in a {style} tone.",
-    "A rhythmic and {style} explanation given by a {gender} voice.",
-    "This {style} auditory lesson is presented by a {gender} teacher.",
-]
-
-
-def _apply_voice_template(voice_description: str) -> str:
-    """Convert 'female, cheerful' to a random template string."""
-    try:
-        parts  = [p.strip() for p in voice_description.split(",")]
-        gender = parts[0]
-        style  = parts[1]
-        return random.choice(VOICE_TEMPLATES).format(gender=gender, style=style)
-    except Exception:
-        return voice_description
-
+GEMINI_VOICES = {
+    "Puck":      "male",
+    "Charon":    "male",
+    "Orus":      "male",
+    "Achird":    "male",
+    "Enceladus": "male",
+    "Zephyr":    "female",
+    "Leda":      "female",
+    "Kore":      "female",
+    "Aoede":     "female",
+    "Gacrux":    "female",
+    "Sulafat":   "female",
+}
 
 class StoryGenerator:
 
@@ -256,12 +195,16 @@ For each CHARACTER provide:
   * Never use the character name
   * Never use abstract concepts
   * Must match the visual_description of the character exactly
-- voice_description: ONLY two things separated by a comma:
-  (1) gender using ONLY "male" or "female" in lowercase,
-  (2) ONE emotion word from ONLY this list:
-      cheerful, gentle, energetic, whispering, authoritative,
-      playful, calm, excited, curious, friendly, enthusiastic, soothing, animated, bright
-  Example: "female, cheerful"
+- voice_description: A full natural voice description for Gemini TTS.
+  AVAILABLE VOICES (choose based on character gender and personality):
+    Male voices: Puck, Charon, Orus, Achird, Enceladus
+    Female voices: Zephyr, Leda, Kore, Aoede, Gacrux, Sulafat
+  CRITICAL RULES:
+  * The VERY FIRST WORD must be the voice name and nothing else — no punctuation before it, no other words before it.
+  * Pick ONE voice name that best matches this character's gender and personality — this voice will be used for ALL lines this character speaks.
+  * After the voice name, write a space then a full natural description of tone, mood, energy, and speaking style (2-3 sentences).
+  * Do NOT use the old "gender, emotion" format.
+  Example: "Aoede A warm and enthusiastic female voice with a gentle encouraging tone, speaking with calm clarity and a nurturing energy perfect for teaching young children."
 
 Return a JSON array of EXACTLY {num_characters} objects."""
         chars = self._ask_json(prompt, max_new_tokens=1500 * num_characters)
@@ -298,6 +241,23 @@ Return a JSON array of EXACTLY {num_backgrounds} background objects:
 [{{"name":"","lesson_context":"","visual_description":"","mood":""}}]"""
         return self._ask_json(prompt, max_new_tokens=1200 * num_backgrounds)
 
+    def _normalize_outline_names(self, outline: list, characters: list) -> list:
+        canonical = {c['name'].lower(): c['name'] for c in characters}
+        for scene in outline:
+            # Normalize names
+            for entry in scene.get('characters_present', []):
+                if isinstance(entry, dict):
+                    key = entry['name'].lower()
+                    if key in canonical:
+                        entry['name'] = canonical[key]
+                    else:
+                        for ckey, cname in canonical.items():
+                            if key in ckey or ckey in key:
+                                print(f"Normalizing character name '{entry['name']}' -> '{cname}'", flush=True)
+                                entry['name'] = cname
+                                break
+        return outline
+
     def generate_outline(self, lesson: str, characters: list, backgrounds: list,
                          num_scenes: int, lesson_steps: list) -> list:
         chars_summary = "\n".join([
@@ -332,7 +292,9 @@ Create EXACTLY {num_scenes} scenes. Rules:
 - Every scene must have a clear "lesson_element" that is a specific accurate fact from the lesson
 - Only use character names from: {char_names}
 - Only use background names from: {bg_names}
-- POSITION RULE: All characters must use x values between 0.2 and 0.8 and y values between 0.3 and 0.7 to stay safely visible within the frame. When a scene has more than one character, NO character may be placed at the center. Avoid x values between 0.4 and 0.6 combined with y values between 0.4 and 0.6. Place characters in clearly separated corner zones: bottom-left (x: 0.2–0.35, y: 0.55–0.7), top-right (x: 0.65–0.8, y: 0.3–0.45), bottom-right (x: 0.65–0.8, y: 0.55–0.7), top-left (x: 0.2–0.35, y: 0.3–0.45).
+- CHARACTER LIMIT PER SCENE: EXACTLY 1 or 2 characters per scene. NEVER 3 or more. This is a hard rule — any scene with more than 2 characters_present entries is invalid.
+- CHARACTER REUSE ACROSS SCENES: The same character MUST appear in multiple scenes. You have {len(characters)} characters and {num_scenes} scenes — distribute them so every character appears at least once, and key characters recur across scenes to build continuity. Do NOT assign a unique set of characters to each scene.
+- POSITION RULE: All characters must use x values between 0.2 and 0.8 and y values between 0.3 and 0.7 to stay safely visible within the frame. When a scene has 2 characters, NO character may be placed at the center. Avoid x values between 0.4 and 0.6 combined with y values between 0.4 and 0.6. Place characters in clearly separated corner zones: bottom-left (x: 0.2–0.35, y: 0.55–0.7), top-right (x: 0.65–0.8, y: 0.3–0.45), bottom-right (x: 0.65–0.8, y: 0.55–0.7), top-left (x: 0.2–0.35, y: 0.3–0.45).
 
 Return a JSON array of exactly {num_scenes} scene objects:
 [
@@ -466,7 +428,8 @@ CRITICAL WRITING RULES:
             def _identity_line(name):
                 vn  = char_lookup[name].get('visual_noun', 'the character')
                 wtr = char_lookup[name].get('what_they_represent', char_lookup[name].get('role', name))
-                return '- ' + name + ": visual_noun = '" + vn + "', what_they_represent = '" + wtr + "'"
+                vd  = char_lookup[name].get('voice_description', '')
+                return '- ' + name + ": visual_noun = '" + vn + "', what_they_represent = '" + wtr + "', voice_description = '" + vd + "'"
             char_identity_map = "\n".join([
                 _identity_line(name)
                 for name in char_names_list if name in char_lookup
@@ -545,8 +508,7 @@ Story passage to adapt into dialogue:
 Return a JSON array. Each item must have EXACTLY these 4 fields:
 1. speaker: MUST be exactly one of: {", ".join(char_names_list)}
 2. text: EXACTLY 38 to 50 words of natural dialogue (this must take 15-20 seconds to speak).
-3. voice_description: ONLY gender and ONE emotion word separated by a comma.
-   Example: "female, cheerful"
+3. voice_description: Copy EXACTLY the voice_description from this character's profile in the CHARACTER IDENTITY MAP below. Do NOT change it or generate a new one.
 4. video_prompt: MUST follow this EXACT structure (fill in bracketed placeholders):
 
    "BACKGROUND: [copy the exact background visual_description here, do not summarize or shorten it]. A beautiful cartoon scene with characters that do not move unless specified. SPEAKING CHARACTER: [visual_noun of SPEAKING character, capitalized] located in the [speaker position] of the frame. [visual_noun of SPEAKING character, capitalized] is the ONLY character that speaks and moves in this entire clip. [visual_noun of SPEAKING character, capitalized] mouth opens and closes in perfect sync with the audio voice. [visual_noun of SPEAKING character, capitalized] eyes blink naturally while speaking. [visual_noun of SPEAKING character, capitalized] body animates gently while it talks. STATIC CHARACTER: [visual_noun of STATIC character 1, capitalized] is COMPLETELY FROZEN and absolutely still. [visual_noun of STATIC character 1, capitalized] does NOT speak. [visual_noun of STATIC character 1, capitalized] mouth is CLOSED and does NOT move at all. [visual_noun of STATIC character 1, capitalized] does NOT blink. [visual_noun of STATIC character 1, capitalized] does NOT animate in any way. [visual_noun of STATIC character 1, capitalized] is like a painted statue — zero movement. [Repeat the STATIC CHARACTER block for every additional static character.] Camera is completely static. No zoom. No movement. Fixed wide shot."
@@ -581,12 +543,6 @@ Return ONLY the JSON array."""
 
             lines = self._ask_json(prompt, max_new_tokens=5000, temperature=0.4)
             lines = self._filter_voice_lines(lines, char_names_list)
-
-            for line in lines:
-                if "voice_description" in line and line["voice_description"]:
-                    line["voice_description"] = _apply_voice_template(
-                        line["voice_description"]
-                    )
 
             all_scripts.append({
                 "scene_number":       sp['scene_number'],

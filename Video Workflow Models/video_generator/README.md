@@ -192,6 +192,59 @@ Minimal `video_timeline.json`:
 
 ---
 
+## Deploy API (Modal-hosted FastAPI)
+
+The API accepts a **zip file** containing all story assets and returns the fully assembled video as an MP4. Scenes are processed in parallel on separate GPU containers; shots within each scene run sequentially so each shot can pick up the last frame of the previous one.
+
+```bash
+modal deploy API/API.py
+```
+
+### Expected zip layout
+
+```
+story_zip.zip
+├── shots_flow.json          ← scene/shot manifest (output of story_generator)
+├── backgrounds/
+│   └── forest.png
+├── characters/
+│   ├── hero.png
+│   └── villain.png
+└── scenes/
+    └── scene_01/
+        └── shots/
+            ├── shot_01/voice.mp3
+            └── shot_02/voice.mp3
+```
+
+### Generate endpoint
+
+```
+POST https://<your-modal-url>/generate-from-zip
+Content-Type: multipart/form-data
+
+story_zip=@story_zip.zip   ← required, multipart file
+seed=42                    ← optional integer (default 42)
+```
+
+Response: raw `video/mp4` bytes of the fully assembled final video.
+
+```bash
+curl -X POST https://<your-modal-url>/generate-from-zip \
+  -F "story_zip=@story_zip.zip" \
+  -F "seed=42" \
+  --output final_video.mp4
+```
+
+### Health check
+
+```bash
+GET https://<your-modal-url>/health
+# → {"status": "ok"}
+```
+
+---
+
 ## Run locally
 
 ```bash
@@ -223,7 +276,7 @@ make modal-generate  PROMPT="your prompt here"
 | `model.id` | `rootonchair/LTX-2-19b-distilled` | Base model on HuggingFace |
 | `model.pipeline` | `multimodalart/ltx2-audio-to-video` | Custom audio-to-video pipeline |
 | `model.lora_id` | `Lightricks/LTX-2-19b-LoRA-Camera-Control-Static` | Camera Control LoRA |
-| `model.lora_scale` | `0.8` | LoRA blend strength |
+| `model.lora_scale` | `1.0` | LoRA blend strength |
 | `model.cache_dir` | `/model-cache` | Weight cache path on Modal volume |
 | `generation.quality` | `fhd` | Resolution preset: `sd` / `hd` / `fhd` |
 | `generation.fps` | `24.0` | Output frame rate |
@@ -235,6 +288,8 @@ make modal-generate  PROMPT="your prompt here"
 | `negative_prompt` | see config | Suppresses text, camera movement, blur, etc. |
 | `modal.gpu` | `H200` | GPU type |
 | `modal.timeout` | `7200` | Max job duration in seconds |
+| `modal.scaledown_window` | `3600` | Idle seconds before container shuts down |
+| `modal.python_version` | `3.12` | Python version used in the Modal image |
 
 ---
 
@@ -245,7 +300,7 @@ make modal-generate  PROMPT="your prompt here"
 | Base model | `rootonchair/LTX-2-19b-distilled` |
 | Pipeline | `multimodalart/ltx2-audio-to-video` |
 | LoRA | `Lightricks/LTX-2-19b-LoRA-Camera-Control-Static` |
-| LoRA scale | `0.8` |
+| LoRA scale | `1.0` |
 | GPU | H200 141 GB |
 | Inference steps | 8 (distilled sigma schedule) |
 | Supported resolutions | 512×512 · 768×512 · 512×768 (auto-selected from image aspect ratio) |

@@ -42,8 +42,10 @@ cp .env.example .env
 
 Fill in `.env`:
 ```env
-GEMINI_API_KEY=your_google_gemini_api_key_here
+GEMINI_API_KEYS=your_key_1,your_key_2,your_key_3
 ```
+
+Supply one key or several comma-separated keys. The API automatically rotates across them on failure, so adding multiple keys increases throughput and resilience.
 
 > ⚠️ **Never commit `.env` to git** — it's already in `.gitignore`
 
@@ -135,6 +137,7 @@ Response:
 | Setting | Value | Where |
 |---|---|---|
 | Model | `gemini-2.5-flash` | `API/API.py`, `cloud/run.py`, `scripts/chat.py` |
+| API keys | `GEMINI_API_KEYS` (comma-separated) | `.env` — multiple keys for fallback rotation |
 | Temperature | `0.7` | `src/chatbot.py` |
 | Top-p | `0.9` | `src/chatbot.py` |
 | Max output tokens | `2048` | `src/chatbot.py` |

@@ -252,9 +252,11 @@ class VideoGenerator:
         width, height  = auto_resolution(raw_ref, quality=self.cfg.generation.quality)
         print(f"Output resolution: {width}x{height}")
 
-        RELAX_SECS       = 2.5
+        RELAX_SECS       = 1.0
         DARK_BUFFER_SECS = 2.0
         TAIL_SECS = DARK_BUFFER_SECS + RELAX_SECS
+
+        last_clip_bytes = None  # track previous shot clip to extract last frame
 
         for shot in shots:
             shot_id   = shot["shot_id"]
@@ -271,7 +273,29 @@ class VideoGenerator:
             bg_bytes    = background_images.get(bg_name)
             scene_chars = shot.get("characters_present", [])
 
-            if scene_chars:
+            if last_clip_bytes is not None:
+                # Extract last frame from previous clip as starting frame
+                print(f"  Extracting last frame from previous clip...")
+                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
+                    f.write(last_clip_bytes)
+                    prev_clip_path = f.name
+                with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+                    last_frame_path = f.name
+                subprocess.run([
+                    "ffmpeg", "-y", "-sseof", "-0.1",
+                    "-i", prev_clip_path,
+                    "-vframes", "1",
+                    "-q:v", "2",
+                    last_frame_path,
+                ], check=True, capture_output=True)
+                frame_bytes = open(last_frame_path, "rb").read()
+                from pathlib import Path as _P
+                _P(prev_clip_path).unlink(missing_ok=True)
+                _P(last_frame_path).unlink(missing_ok=True)
+                print(f"  Last frame extracted: {len(frame_bytes)/1024:.1f} KB")
+
+            elif scene_chars:
+                # First shot — composite fresh frame
                 print(f"  Compositing frame for shot {shot_id}...")
                 chars_in_shot = []
                 for cp in scene_chars:
@@ -317,8 +341,10 @@ class VideoGenerator:
                 seed=seed,
                 tail_secs=TAIL_SECS,
             )
-            results[shot_id] = trim_tail(raw_clip, trim_secs=DARK_BUFFER_SECS + RELAX_SECS)
-            print(f"  Clip done: {len(results[shot_id])/1024:.1f} KB")
+            trimmed = trim_tail(raw_clip, trim_secs=DARK_BUFFER_SECS)  # only trim dark frames, keep RELAX_SECS visible
+            results[shot_id] = trimmed
+            last_clip_bytes  = trimmed  # pass to next shot
+            print(f"  Clip done: {len(trimmed)/1024:.1f} KB")
 
         print(f"\nPipeline complete. {len(results)} clips generated.")
         return results

@@ -43,6 +43,8 @@ image = (
 app = modal.App("video-generator", image=image)
 
 
+# One container per SCENE — shots within a scene run sequentially
+# so each shot can use the last frame of the previous one
 @app.function(
     gpu=GPU,
     volumes={MODEL_CACHE: volume},
@@ -50,8 +52,8 @@ app = modal.App("video-generator", image=image)
     scaledown_window=SCALEDOWN,
     secrets=[modal.Secret.from_dict({"HF_TOKEN": HF_TOKEN})],
 )
-def generate_shot(payload: dict) -> dict:
-    """Each call runs in its own container with its own GPU."""
+def generate_scene(payload: dict) -> dict:
+    """Each call handles all shots of one scene sequentially."""
     import sys
     sys.path.insert(0, "/root/project")
     from src.generator import VideoGenerator
@@ -62,7 +64,7 @@ def generate_shot(payload: dict) -> dict:
     gen.load_model()
 
     return gen.generate_pipeline(
-        shots             = [payload["shot"]],
+        shots             = payload["shots"],
         background_images = payload["background_images"],
         character_images  = payload["character_images"],
         audio_files       = payload["audio_files"],
@@ -93,8 +95,8 @@ def _load_assets(root: Path):
     return background_images, character_images
 
 
-def _build_shot_payloads(scenes, root, background_images, character_images, seed):
-    """Flatten ALL shots from ALL scenes — one payload per shot."""
+def _build_scene_payloads(scenes, root, background_images, character_images, seed):
+    """One payload per scene — all shots of a scene bundled together."""
     payloads   = []
     shot_order = []
 
@@ -102,6 +104,9 @@ def _build_shot_payloads(scenes, root, background_images, character_images, seed
         scene_id    = scene["scene_id"]
         bg_name     = Path(scene["background"]).stem
         scene_chars = scene["characters"]
+
+        scene_shots = []
+        scene_audio = {}
 
         for i, shot in enumerate(scene["shots"]):
             shot_id  = f"s{scene_id}_shot{shot['shot_id']}"
@@ -112,26 +117,29 @@ def _build_shot_payloads(scenes, root, background_images, character_images, seed
                 print(f"WARNING: Audio not found for {shot_id}: {voice_path}")
                 continue
 
-            payloads.append({
-                "shot": {
-                    "shot_id":            shot_id,
-                    "scene_number":       scene_id,
-                    "shot_number":        shot_num,
-                    "background_name":    bg_name,
-                    "video_prompt":       shot.get("video_prompt"),
-                    "negative_prompt":    shot.get("negative_prompt"),
-                    "speaker":            shot.get("speaker", ""),
-                    "characters_present": [
-                        {"name": c["name"], "position": c["position"]}
-                        for c in scene_chars
-                    ],
-                },
-                "background_images": background_images,
-                "character_images":  character_images,
-                "audio_files":       {shot_id: voice_path.read_bytes()},
-                "seed":              seed,
+            scene_shots.append({
+                "shot_id":            shot_id,
+                "scene_number":       scene_id,
+                "shot_number":        shot_num,
+                "background_name":    bg_name,
+                "video_prompt":       shot.get("video_prompt"),
+                "negative_prompt":    shot.get("negative_prompt"),
+                "speaker":            shot.get("speaker", ""),
+                "characters_present": [
+                    {"name": c["name"], "position": c["position"]}
+                    for c in scene_chars
+                ],
             })
+            scene_audio[shot_id] = voice_path.read_bytes()
             shot_order.append(shot_id)
+
+        payloads.append({
+            "shots":             scene_shots,
+            "background_images": background_images,
+            "character_images":  character_images,
+            "audio_files":       scene_audio,
+            "seed":              seed,
+        })
 
     return payloads, shot_order
 
@@ -202,16 +210,16 @@ def run_from_zip(
     background_images, character_images = _load_assets(root)
     print(f"Backgrounds: {list(background_images)} | Characters: {list(character_images)}")
 
-    payloads, shot_order = _build_shot_payloads(
+    payloads, shot_order = _build_scene_payloads(
         scenes, root, background_images, character_images, seed
     )
-    print(f"Total shots: {len(payloads)} — each gets its own GPU container")
+    print(f"Total shots: {len(shot_order)} across {len(payloads)} scenes")
+    print(f"Scenes run in parallel — shots within each scene run sequentially")
 
     results = {}
 
-    # .map() on a standalone @app.function spawns one container per item — truly parallel
-    print("\nRunning all shots in parallel...")
-    for shot_result in generate_shot.map(payloads):
-        results.update(shot_result)
+    # Scenes run in parallel — each scene gets its own container
+    for scene_result in generate_scene.map(payloads):
+        results.update(scene_result)
 
     _save_and_concat(results, shot_order, clips_dir, tmp_dir, output_path)

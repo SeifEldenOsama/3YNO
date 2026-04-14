@@ -74,13 +74,14 @@ Response:
 ```
 ---
 
- Tech Stack
+##  Tech Stack
 Python
 FastAPI
 LangChain
 Groq API (LLM)
-Modal (Deployment)
-  Setup (Local)
+
+##  Modal (Deployment)
+  Setup (Local) :
 git clone <repo-link>
 cd <project-folder>
 pip install -r requirements.txt
@@ -97,11 +98,11 @@ python main_modal.py
 The API is deployed using Modal.
 
 modal deploy main_modal.py
-  Notes
+ ##  Notes
 Correct answers are hidden from users
 Evaluation is handled via /submit-quiz/
 API is stateless (no user data stored)
-  Integration
+ ##  Integration
 
 This API can be used with:
 

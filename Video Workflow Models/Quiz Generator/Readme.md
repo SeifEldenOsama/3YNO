@@ -22,37 +22,37 @@ MCQ Quiz Generator Model
     The API evaluates the answers and returns the final score with feedback.
 
  >> API Endpoints
-  1. Generate Quiz
+ 1. Generate Quiz
   
-  POST /generate-quiz/
+   POST /generate-quiz/
   
-  Request Body:
-  {
-    "content": "Your summary text here"
-  }
-  Response:
-  {
-    "questions": [...],
-    "full_data": [...]
-  }
-  questions: Contains only questions and choices (for the user)
-  full_data: Contains answers and explanations (used for evaluation)
-  2. Submit Quiz
+   Request Body:
+   {
+     "content": "Your summary text here"
+   }
+   Response:
+   {
+     "questions": [...],
+     "full_data": [...]
+   }
+   questions: Contains only questions and choices (for the user)
+   full_data: Contains answers and explanations (used for evaluation)
+ 2. Submit Quiz
   
-  POST /submit-quiz/
+   POST /submit-quiz/
   
-  Request Body:
-  {
-    "answers": [
-      {"question_index": 0, "selected_index": 1}
+   Request Body:
+   {
+     "answers": [
+     {"question_index": 0, "selected_index": 1}
     ],
-    "questions": [...]
-  }
-  Response:
-  {
-    "score": 4,
-    "total": 5,
-    "feedback": [...]
+     "questions": [...]
+   }
+   Response:
+   {
+     "score": 4,
+     "total": 5,
+     "feedback": [...]
   }
 
 >> Tech Stack
@@ -75,9 +75,11 @@ MCQ Quiz Generator Model
         python main_modal.py
 
 >> Deployment
+
   The API is deployed using Modal.
   
   To deploy:
+  
   modal deploy main_modal.py
 
 
@@ -85,8 +87,9 @@ MCQ Quiz Generator Model
     The correct answers are not shown to the user
     Evaluation is handled securely through the /submit-quiz/ endpoint
     The API is stateless and does not store user data
+   
 
 >> Integration
-      This API is intended to be integrated with:
-          A summary generation model
-          A frontend/mobile application for user interaction
+       This API is intended to be integrated with:
+       A summary generation model
+       A frontend/mobile application for user interaction

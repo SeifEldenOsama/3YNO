@@ -111,10 +111,22 @@ class VideoGenerator:
 
     def load_model(self):
         import torch
+        import shutil
         from diffusers import DiffusionPipeline
 
         m        = self.cfg.model
         hf_token = os.environ.get("HF_TOKEN")
+
+        # Clear stale HF diffusers module cache so the pipeline is always
+        # re-downloaded fresh from HuggingFace instead of served from the
+        # persistent volume with a potentially outdated LTX2TextConnectors.
+        hf_modules_cache = os.path.expanduser(
+            "~/.cache/huggingface/modules/diffusers_modules"
+        )
+        if os.path.isdir(hf_modules_cache):
+            print(f"Clearing stale HF modules cache: {hf_modules_cache}")
+            shutil.rmtree(hf_modules_cache)
+
         print("Loading pipeline...")
         self.pipe = DiffusionPipeline.from_pretrained(
             m.id,
@@ -136,6 +148,22 @@ class VideoGenerator:
         self.pipe.fuse_lora(lora_scale=m.lora_scale)
         self.pipe.unload_lora_weights()
         self.pipe.to("cuda")
+
+        # Safety patch: if the installed diffusers' LTX2TextConnectors doesn't
+        # yet accept `additive_mask`, wrap it so the pipeline doesn't crash.
+        try:
+            import inspect
+            connectors_cls = type(self.pipe.connectors)
+            sig = inspect.signature(connectors_cls.forward)
+            if "additive_mask" not in sig.parameters:
+                print("Patching LTX2TextConnectors.forward to accept additive_mask...")
+                _orig_forward = connectors_cls.forward
+                def _patched_forward(self_inner, *args, additive_mask=None, **kwargs):
+                    return _orig_forward(self_inner, *args, **kwargs)
+                connectors_cls.forward = _patched_forward
+        except Exception as patch_err:
+            print(f"Patch skipped ({patch_err})")
+
         print("Model ready.")
 
     def _infer(

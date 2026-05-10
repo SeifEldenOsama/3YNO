@@ -27,7 +27,7 @@ image = (
         extra_index_url="https://download.pytorch.org/whl/cu124",
     )
     .pip_install(
-        "diffusers", "transformers==4.52.4", "huggingface_hub[hf_transfer]",
+        "diffusers @ git+https://github.com/huggingface/diffusers.git", "transformers>=4.46.0,<4.52.0", "huggingface_hub[hf_transfer]",
         "hf_transfer", "sentencepiece", "numpy", "pillow", "soundfile",
         "imageio[ffmpeg]", "accelerate", "einops", "scipy", "av", "moviepy",
         "peft", "librosa", "pyyaml", "python-dotenv", "rembg[gpu]",

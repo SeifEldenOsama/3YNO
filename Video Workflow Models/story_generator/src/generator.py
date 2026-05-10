@@ -173,14 +173,17 @@ For each CHARACTER provide:
 - gender: "male" or "female" only, lowercase.
 - role: their specific educational role in the story (1 sentence).
 - personality: what they are like (1 sentence).
-- visual_description: A TTI image generation prompt for this character ONLY.
+- visual_description: A high-quality TTI image generation prompt for this character ONLY.
   Rules:
   * The character MUST be a cartoon version of a NON-HUMAN object or nature element (e.g. a cartoon sun with a smiley face, a cartoon water droplet, a cartoon cloud). NEVER a human, person, boy, or girl.
-  * Pure white background - character only, no scene, no environment.
-  * Strictly 2D cartoon style, bold black outlines, flat bright colors. NO photorealism. NO 3D rendering. NO human anatomy.
-  * Give the character a cute cartoon face: large round expressive eyes, a wide animated smiling mouth. NO human nose. NO human ears. NO human skin.
-  * End with: "pure white background, 2D cartoon illustration, children's TV show style, no humans, no people, no realistic features".
-  * 3-4 sentences total.
+  * Pure white background — character only, no scene, no environment, no shadow, no ground line.
+  * Art style: premium 2D cartoon illustration, crisp bold black outlines with variable line weight (thicker outer contour, thinner inner detail lines), vibrant flat colors with subtle cel-shading highlights and soft inner glow to give depth without losing the flat look. Inspired by top-tier children's TV animation (Pixar short style meets classic Saturday-morning cartoon).
+  * Character body: describe the exact shape, dominant color, secondary accent colors, any texture or pattern details (spots, stripes, sheen, sparkle), and overall silhouette clearly. Be specific about size proportions (e.g. "oversized round head, tiny stubby limbs").
+  * Facial features: large round expressive eyes with glossy white specular highlights and colored irises, thick upper eyelashes, a wide cheerful open smile showing small rounded teeth, rosy circular cheek blush marks. NO human nose. NO human ears. NO human skin tone.
+  * Add ONE signature detail that makes this character instantly recognizable and memorable (e.g. a tiny crown, glowing aura, sparkle trail, bouncy antenna, leaf hat).
+  * Lighting: soft front-facing studio light with a subtle rim highlight on the upper-left edge to make the character pop off the white background.
+  * End with: "pure white background, isolated character, no background elements, high-detail 2D cartoon illustration, children's premium animated series style, no humans, no people, no realistic textures, no 3D rendering".
+  * 5-6 sentences total.
     - image_location: Where this character will be placed on the scene image.
       Return as a JSON object: {{"x": <float>, "y": <float>}}
       where (0.0, 0.0) = top-left, (1.0, 1.0) = bottom-right.
@@ -231,10 +234,15 @@ Do NOT include any characters in the background.
 For each BACKGROUND provide:
 - name: short 2-3 word label
 - lesson_context: which part of the lesson happens here (1 sentence)
-- visual_description: VERY DETAILED background-only description. NO characters. NO humans. NO people.
-  Style rules: strictly 2D cartoon illustration style, flat bright colors, bold outlines, children's animated TV show look.
-  Must end with: "2D cartoon background, children's animated show style, no characters, no people, no humans".
-  3-4 sentences total.
+- visual_description: A high-quality TTI image generation prompt for this background ONLY. NO characters. NO humans. NO people anywhere in the scene.
+  Style rules:
+  * Premium 2D cartoon illustration style — crisp bold outlines with variable weight, vibrant flat color fills with subtle cel-shading to add depth, rich layered composition (clear foreground details, midground subject, distant background elements) creating a strong sense of depth without 3D rendering.
+  * Describe the scene in layers: (1) SKY / CEILING layer — exact colors, cloud shapes, sun/moon position, light rays, stars, or weather effects; (2) MIDGROUND — main environmental features (hills, trees, water, buildings, rocks) with specific colors, shapes, and textures; (3) FOREGROUND — close-up ground details (grass tufts, pebbles, flowers, sand, roots, puddles) that frame the bottom of the image.
+  * Lighting & atmosphere: specify the time of day, direction of light, color temperature (warm golden, cool blue, soft pink dawn, etc.), any atmospheric effects (mist, sparkle particles, light shafts, glowing embers, bubbles, falling leaves).
+  * Color palette: name 3-4 dominant colors and describe how they interact (e.g. "deep teal sky gradients into soft mint at the horizon, contrasted by warm amber ground tones").
+  * Mood details: include small environmental storytelling elements that reinforce the scene's mood (fireflies dotting the air, rippling water reflections, swaying grass, dappled sunlight through leaves).
+  * Must end with: "2D cartoon background, premium children's animated series style, no characters, no people, no humans, no text, highly detailed environment illustration".
+  * 6-8 sentences total.
 - mood: one word (cheerful, cozy, adventurous, mysterious, warm, bright, etc.)
 
 Return a JSON array of EXACTLY {num_backgrounds} background objects:
@@ -498,9 +506,8 @@ CRITICAL RULES:
 - Keep dialogue natural and fun
 
 LINE LENGTH RULES:
-- Every "text" field MUST be between 38 and 50 words. Count carefully.
-- NEVER write fewer than 38 words or more than 50 words per line.
-- This ensures each line takes between 15 and 20 seconds to speak aloud.
+- If there is ONLY ONE character in this scene: return EXACTLY ONE item in the JSON array. The single "text" field must be 80 to 120 words — a full, rich monologue covering the entire lesson element. Do NOT split it into multiple shots.
+- If there are MULTIPLE characters in this scene: each character takes turns speaking. Every "text" field MUST be between 38 and 50 words. NEVER write fewer than 38 words or more than 50 words per line. This ensures each line takes between 15 and 20 seconds to speak aloud.
 
 Story passage to adapt into dialogue:
 {sp["passage"]}

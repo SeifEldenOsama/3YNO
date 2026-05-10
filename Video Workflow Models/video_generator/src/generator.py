@@ -117,9 +117,7 @@ class VideoGenerator:
         m        = self.cfg.model
         hf_token = os.environ.get("HF_TOKEN")
 
-        # Clear stale HF diffusers module cache so the pipeline is always
-        # re-downloaded fresh from HuggingFace instead of served from the
-        # persistent volume with a potentially outdated LTX2TextConnectors.
+        # Clear stale HF diffusers module cache
         hf_modules_cache = os.path.expanduser(
             "~/.cache/huggingface/modules/diffusers_modules"
         )
@@ -144,13 +142,13 @@ class VideoGenerator:
             adapter_name="camera_control",
             cache_dir=m.cache_dir,
             token=hf_token,
+            trust_remote_code=True,
         )
         self.pipe.fuse_lora(lora_scale=m.lora_scale)
         self.pipe.unload_lora_weights()
         self.pipe.to("cuda")
 
-        # Safety patch: if the installed diffusers' LTX2TextConnectors doesn't
-        # yet accept `additive_mask`, wrap it so the pipeline doesn't crash.
+        # Safety patch for additive_mask if diffusers version is behind
         try:
             import inspect
             connectors_cls = type(self.pipe.connectors)
@@ -281,7 +279,7 @@ class VideoGenerator:
         width, height  = auto_resolution(raw_ref, quality=self.cfg.generation.quality)
         print(f"Output resolution: {width}x{height}")
 
-        RELAX_SECS       = 1.0
+        RELAX_SECS       = 2.5
         DARK_BUFFER_SECS = 2.0
         TAIL_SECS = DARK_BUFFER_SECS + RELAX_SECS
 
@@ -338,7 +336,7 @@ class VideoGenerator:
                         "name":        name,
                         "image_bytes": c_bytes,
                         "position":    position,
-                        "is_speaker":  False,
+                        "is_speaker":  name == speaker,  # correctly mark the speaker
                     })
                 frame_bytes = composite_frame(
                     background_bytes = bg_bytes,

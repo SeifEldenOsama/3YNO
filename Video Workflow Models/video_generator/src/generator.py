@@ -122,6 +122,7 @@ class VideoGenerator:
             torch_dtype=torch.bfloat16,
             cache_dir=m.cache_dir,
             token=hf_token,
+            trust_remote_code=True,
         )
         self.pipe.vae.enable_tiling()
         self.pipe.vae.enable_slicing()

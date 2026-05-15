@@ -182,14 +182,20 @@ For each CHARACTER provide:
   * Facial features: large round expressive eyes with glossy white specular highlights and colored irises, thick upper eyelashes, a wide cheerful open smile showing small rounded teeth, rosy circular cheek blush marks. NO human nose. NO human ears. NO human skin tone.
   * Add ONE signature detail that makes this character instantly recognizable and memorable (e.g. a tiny crown, glowing aura, sparkle trail, bouncy antenna, leaf hat).
   * Lighting: soft front-facing studio light with a subtle rim highlight on the upper-left edge to make the character pop off the white background.
-  * End with: "pure white background, isolated character, no background elements, ultra-high-detail 2D cartoon illustration, 4K resolution, sharp crisp lines, vibrant color accuracy, children's premium animated series style, no humans, no people, no realistic textures, no 3D rendering".
+  * End with: "pure white background, isolated character, no background elements, ultra-high-detail 2D cartoon illustration, 8K resolution, maximum sharpness, sharp crisp lines, vibrant color accuracy, children's premium animated series style, no humans, no people, no realistic textures, no 3D rendering, highest possible quality and resolution, every detail fully rendered and visible".
   * 5-6 sentences total.
     - image_location: Where this character will be placed on the scene image.
       Return as a JSON object: {{"x": <float>, "y": <float>}}
       where (0.0, 0.0) = top-left, (1.0, 1.0) = bottom-right.
-      CRITICAL: Use x values between 0.2 and 0.8 and y values between 0.3 and 0.7 to keep characters safely visible and away from the frame borders.
+      CRITICAL POSITION RULES BASED ON CHARACTER TYPE:
+      * SKY / AERIAL characters (sun, cloud, moon, star, bird, raindrop falling, wind, lightning, balloon, kite, rainbow, snowflake, etc.):
+        Use y values between 0.15 and 0.40 (upper portion of the frame = sky area).
+      * GROUND / SURFACE characters (animals, plants, rocks, mushrooms, insects on ground, water in a river, etc.):
+        Use y values between 0.55 and 0.80 (lower portion of the frame = ground area).
+      * x values must always be between 0.2 and 0.8 for both types.
       Each character MUST have a DIFFERENT position.
-      CRITICAL: Since there are {num_characters} characters, NO character may be placed at the center of the frame. Avoid x values between 0.4 and 0.6 combined with y values between 0.4 and 0.6. Place characters in clearly separated zones, for example: bottom-left (x: 0.2–0.35, y: 0.55–0.7), top-right (x: 0.65–0.8, y: 0.3–0.45), bottom-right (x: 0.65–0.8, y: 0.55–0.7), top-left (x: 0.2–0.35, y: 0.3–0.45).
+      CRITICAL: No character may be placed at the center. Avoid x between 0.4–0.6 combined with y between 0.4–0.6.
+      Clearly separated horizontal zones: left side (x: 0.2–0.35) or right side (x: 0.65–0.8).
 - visual_noun: A SHORT 2-5 word phrase starting with "the" that describes HOW THIS CHARACTER PHYSICALLY LOOKS IN THE IMAGE.
   This is pasted directly into video prompts so the AI video model must be able to identify the character from this description alone.
   Describe its COLOR and SHAPE — what would someone see if they looked at it: "the brown spiky ball", "the small green tree", "the red mushroom", "the blue water droplet", "the yellow sun with rays", "the white cloud".
@@ -241,7 +247,7 @@ For each BACKGROUND provide:
   * Lighting & atmosphere: specify the time of day, direction of light, color temperature (warm golden, cool blue, soft pink dawn, etc.), any atmospheric effects (mist, sparkle particles, light shafts, glowing embers, bubbles, falling leaves).
   * Color palette: name 3-4 dominant colors and describe how they interact (e.g. "deep teal sky gradients into soft mint at the horizon, contrasted by warm amber ground tones").
   * Mood details: include small environmental storytelling elements that reinforce the scene's mood (fireflies dotting the air, rippling water reflections, swaying grass, dappled sunlight through leaves).
-  * Must end with: "2D cartoon background, premium children's animated series style, 4K resolution, ultra-sharp detail, vibrant color grading, cinematic composition, no characters, no people, no humans, no text, highly detailed environment illustration".
+  * Must end with: "2D cartoon background, premium children's animated series style, 8K resolution, ultra-sharp detail, vibrant color grading, cinematic composition, no characters, no people, no humans, no text, highly detailed environment illustration, highest possible quality and resolution, every background element fully visible and richly detailed, no detail omitted or blurred".
   * 6-8 sentences total.
 - mood: one word (cheerful, cozy, adventurous, mysterious, warm, bright, etc.)
 
@@ -302,7 +308,10 @@ Create EXACTLY {num_scenes} scenes. Rules:
 - Only use background names from: {bg_names}
 - CHARACTER LIMIT PER SCENE: EXACTLY 1 or 2 characters per scene. NEVER 3 or more. This is a hard rule — any scene with more than 2 characters_present entries is invalid.
 - CHARACTER REUSE ACROSS SCENES: The same character MUST appear in multiple scenes. You have {len(characters)} characters and {num_scenes} scenes — distribute them so every character appears at least once, and key characters recur across scenes to build continuity. Do NOT assign a unique set of characters to each scene.
-- POSITION RULE: All characters must use x values between 0.2 and 0.8 and y values between 0.3 and 0.7 to stay safely visible within the frame. When a scene has 2 characters, NO character may be placed at the center. Avoid x values between 0.4 and 0.6 combined with y values between 0.4 and 0.6. Place characters in clearly separated corner zones: bottom-left (x: 0.2–0.35, y: 0.55–0.7), top-right (x: 0.65–0.8, y: 0.3–0.45), bottom-right (x: 0.65–0.8, y: 0.55–0.7), top-left (x: 0.2–0.35, y: 0.3–0.45).
+- POSITION RULE: x values must always be between 0.2 and 0.8. y values depend on what the character physically IS:
+  * SKY / AERIAL characters (sun, cloud, moon, star, bird, raindrop, wind, lightning, balloon, rainbow, snowflake, etc.): y between 0.15 and 0.40.
+  * GROUND / SURFACE characters (animals, plants, rocks, mushrooms, insects on ground, water bodies, etc.): y between 0.55 and 0.80.
+  NO character may be at the center (avoid x 0.4–0.6 combined with y 0.4–0.6). Separate characters horizontally: left side (x: 0.2–0.35) or right side (x: 0.65–0.8).
 
 Return a JSON array of exactly {num_scenes} scene objects:
 [
@@ -472,17 +481,46 @@ CRITICAL WRITING RULES:
             )
 
             # Build position hints from x,y coords
+            # Keywords that indicate a character naturally lives in the sky/air
+            AERIAL_KEYWORDS = {
+                "sun", "cloud", "moon", "star", "rainbow", "sky", "bird",
+                "butterfly", "bee", "dragonfly", "balloon", "kite", "lightning",
+                "thunder", "wind", "breeze", "gust", "comet", "meteor", "planet",
+                "rocket", "airplane", "aircraft", "ufo", "fairy", "angel", "fly",
+                "flying", "hawk", "eagle", "owl", "bat", "snowflake", "hail",
+                "rain", "raindrop", "droplet", "haze", "fog", "mist", "aurora",
+            }
+
+            def _is_aerial(name):
+                """Return True if the character naturally belongs in the sky."""
+                char = char_lookup.get(name, {})
+                # Check visual_noun, what_they_represent, and name itself
+                text_to_check = " ".join([
+                    str(char.get("visual_noun", "")),
+                    str(char.get("what_they_represent", "")),
+                    str(char.get("visual_description", "")),
+                    name,
+                ]).lower()
+                return any(kw in text_to_check for kw in AERIAL_KEYWORDS)
+
             def pos_hint(name):
                 pos = scene_pos.get(name, {})
                 x = float(pos.get("x", 0.5))
                 y = float(pos.get("y", 0.5))
                 multi = len(char_names_list) > 1
-                h = "left" if x < 0.4 else ("right" if x > 0.6 else ("left" if multi else "center"))
-                v = "top" if y < 0.4 else ("bottom" if y > 0.6 else ("bottom" if multi else "middle"))
-                return f"{v} {h}"
+                aerial = _is_aerial(name)
+                h_word = "left" if x < 0.4 else ("right" if x > 0.6 else ("left" if multi else "center"))
+                # Vertical label: only use sky/ground language when it makes physical sense
+                if aerial:
+                    # Aerial characters: y < 0.5 = high in the sky, y >= 0.5 = lower sky
+                    v_word = "high in the sky on the" if y < 0.5 else "in the lower sky on the"
+                    return f"{v_word} {h_word}"
+                else:
+                    # Ground characters: ignore y, just use horizontal placement
+                    return f"on the {h_word} side"
 
             pos_hints = "\n".join([
-                f"- {name}: {pos_hint(name)} of the frame"
+                f"- {name}: {pos_hint(name)} of the scene"
                 for name in char_names_list
             ])
 
@@ -516,30 +554,28 @@ Return a JSON array. Each item must have EXACTLY these 4 fields:
 1. speaker: MUST be exactly one of: {", ".join(char_names_list)}
 2. text: EXACTLY 38 to 50 words of natural dialogue (this must take 15-20 seconds to speak).
 3. voice_description: Copy EXACTLY the voice_description from this character's profile in the CHARACTER IDENTITY MAP below. Do NOT change it or generate a new one.
-4. video_prompt: MUST follow this EXACT structure (fill in bracketed placeholders):
+4. video_prompt: MUST follow this EXACT template, filling in the bracketed placeholders based on the scene:
 
-   "SPEAKING CHARACTER: [visual_noun of SPEAKING character, capitalized] located in the [speaker position] of the frame. [visual_noun of SPEAKING character, capitalized] is the ONLY character that speaks and moves in this entire clip. [visual_noun of SPEAKING character, capitalized] mouth opens and closes in perfect sync with the audio voice. [visual_noun of SPEAKING character, capitalized] eyes blink naturally while speaking. [visual_noun of SPEAKING character, capitalized] body animates gently while it talks. STATIC CHARACTER: [visual_noun of STATIC character 1, capitalized] is COMPLETELY FROZEN and absolutely still. [visual_noun of STATIC character 1, capitalized] does NOT speak. [visual_noun of STATIC character 1, capitalized] mouth is CLOSED and does NOT move at all. [visual_noun of STATIC character 1, capitalized] does NOT blink. [visual_noun of STATIC character 1, capitalized] does NOT animate in any way. [visual_noun of STATIC character 1, capitalized] is like a painted statue — zero movement. [Repeat the STATIC CHARACTER block for every additional static character.] Camera is completely static. No zoom. No movement. Fixed wide shot. BACKGROUND: [copy the exact background visual_description here, do not summarize or shorten it]. A beautiful cartoon scene with characters that do not move unless specified."
-
-   STRICT RULES:
-   - Use visual_noun for EVERY character reference (e.g. "The brown spiky ball", "The small green tree") — NEVER use character names.
-   - Capitalize the first letter of each visual_noun when it starts a sentence.
-   - Use POSITION MAP for frame positions (e.g. "bottom left", "middle center", "middle right").
-   - Add one full STATIC CHARACTER block per non-speaking character — do not merge or skip any.
-   - If there is only one character in the scene, omit all STATIC CHARACTER blocks.
-
-5. negative_prompt: MUST follow this EXACT structure (one entry per static character, then shared endings):
-
-   For EACH static character, list ALL of the following phrases (replace [visual_noun] with that character's visual_noun):
-   "[visual_noun] speaking, [visual_noun] talking, [visual_noun] mouth moving, [visual_noun] mouth open, [visual_noun] lip sync, [visual_noun] animating, [visual_noun] blinking, [visual_noun] moving, [visual_noun] gesturing, [visual_noun] facial expression changing"
-
-   After listing all static characters, append this fixed ending:
-   "two characters speaking simultaneously, multiple characters talking, both characters moving, all characters moving, background character talking, zoom in, zoom out, close up, extreme close up, camera movement, dolly, pan, tilt, character growing, character enlarging, character approaching camera, character disappearing, character fading, character vanishing"
+   "A beautiful landscape with [SPEAKING character visual_noun] and [each STATIC character visual_noun, joined with 'and']. [SPEAKING character visual_noun, capitalized] in the [speaker position] is the only character moving. [SPEAKING character visual_noun, capitalized] speaks the words in the voice, its mouth opening and closing in perfect synchronization. [SPEAKING character visual_noun, capitalized]'s eyes blink and its body animates as it talks. [For each STATIC character: '[Static character visual_noun, capitalized] in the [static character position] remains completely static, its eyes wide and its smile frozen.'] No text, no words, no letters, no captions, no labels of any kind appear anywhere in the scene."
 
    STRICT RULES:
-   - Use ONLY the visual_noun of each static character — NEVER use character names.
-   - All phrases for all static characters are joined with ", " into one single flat string.
-   - If there is only one character in the scene, set negative_prompt to "".
+   - SPEAKING CHARACTER ALWAYS FIRST: In "A beautiful landscape with ...", the SPEAKING character visual_noun MUST be written first, before all static characters. If the green jellyfish speaks, write "...with the green jellyfish and the yellow firefly..." NOT "...with the yellow firefly and the green jellyfish...".
+   - Use visual_noun for EVERY character reference — NEVER use character names.
+   - Use POSITION MAP for frame positions EXACTLY as written (e.g. "on the left side", "high in the sky on the right", "on the right side"). Copy the position label word-for-word from the CHARACTER POSITION MAP below.
+   - NEVER say a ground character is "floating", "in the upper", "in the lower", or imply it is airborne if its position says "on the left/right side".
+   - NEVER say a sky character is "on the ground" or "standing" if its position says "in the sky".
+   - After the opening sentence, describe the SPEAKING character moving first, then write one frozen description sentence per static character last.
+   - If there is only one character in the scene, skip the static character sentences entirely.
+   - Keep the sentence structure close to the template — only swap character nouns and positions.
 
+5. negative_prompt: Use ONLY this exact fixed string for every line:
+
+   "text, words, letters, captions, subtitles, typography, font, label, title, watermark, writing, inscription, characters, alphabets, numbers, digits, overlay text, on-screen text, speech bubble, dialogue box, low quality, blurry, pixelated, distorted, deformed, ugly, bad anatomy, duplicate, error, cropped, out of frame, worst quality, jpeg artifacts, overexposed, underexposed"
+
+   STRICT RULES:
+   - The negative_prompt is ALWAYS this fixed string — never add character names, visual nouns, or anything else.
+   - Do NOT change it based on which character is speaking or which are static.
+   - If there is only one character in the scene, still use the same fixed string.
 CHARACTER IDENTITY MAP (name → what they represent):
 {char_identity_map}
 

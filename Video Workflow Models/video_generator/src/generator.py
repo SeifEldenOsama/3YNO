@@ -279,8 +279,8 @@ class VideoGenerator:
         width, height  = auto_resolution(raw_ref, quality=self.cfg.generation.quality)
         print(f"Output resolution: {width}x{height}")
 
-        RELAX_SECS       = 1.0
-        DARK_BUFFER_SECS = 2.0
+        RELAX_SECS       = 2.0
+        DARK_BUFFER_SECS = 3.0
         TAIL_SECS = DARK_BUFFER_SECS + RELAX_SECS
 
         last_clip_bytes = None  # track previous shot clip to extract last frame

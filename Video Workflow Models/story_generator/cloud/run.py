@@ -3,17 +3,21 @@ import os
 from dotenv import load_dotenv
 load_dotenv(".env")
 
-HF_TOKEN     = os.getenv("HF_TOKEN", "")
-HF_BASE_URL  = "https://router.huggingface.co/v1"
-MODEL_ID     = "Qwen/Qwen2.5-32B-Instruct:featherless-ai"
-TIMEOUT      = 3600
-PYTHON_VERSION = "3.11"
+MODEL_ID       = "Qwen/Qwen2.5-32B-Instruct"
+TIMEOUT        = 3600
+CACHE_DIR      = "/model-cache"
 
+volume = modal.Volume.from_name("story-model-cache", create_if_missing=True)
 
 image = (
-    modal.Image.debian_slim(python_version=PYTHON_VERSION)
+    modal.Image.debian_slim(python_version="3.11")
     .pip_install(
-        "openai",
+        "torch==2.2.2",
+        "transformers==4.44.2",
+        "accelerate==0.33.0",
+        "bitsandbytes==0.43.3",
+        "huggingface_hub==0.24.6",
+        "scipy",
         "pyyaml",
         "python-dotenv",
     )
@@ -26,8 +30,10 @@ app = modal.App("kids-story-generator", image=image)
 
 
 @app.cls(
+    gpu="H100",
     timeout=TIMEOUT,
-    secrets=[modal.Secret.from_dict({"HF_TOKEN": HF_TOKEN})],
+    volumes={CACHE_DIR: volume},
+    scaledown_window=300,
 )
 class StoryGeneratorModal:
 
@@ -36,12 +42,15 @@ class StoryGeneratorModal:
         import sys
         sys.path.insert(0, "/root/project")
 
+        from dotenv import load_dotenv
+        load_dotenv("/root/project/.env")
+
         from src.generator import StoryGenerator
         self.gen = StoryGenerator()
         self.gen.load_model(
-            hf_token    = os.environ["HF_TOKEN"],
-            model_id    = MODEL_ID,
-            hf_base_url = HF_BASE_URL,
+            model_id  = MODEL_ID,
+            cache_dir = CACHE_DIR,
+            hf_token  = os.environ.get("HF_TOKEN", ""),
         )
 
     @modal.method()

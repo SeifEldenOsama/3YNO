@@ -22,34 +22,50 @@ class StoryGenerator:
 
     def load_model(
         self,
-        hf_token: str,
-        model_id: str = "Qwen/Qwen2.5-32B-Instruct:featherless-ai",
-        hf_base_url: str = "https://router.huggingface.co/v1",
-        **kwargs,  # accepts and ignores legacy cache_dir / model_id kwargs
+        model_id: str = "Qwen/Qwen2.5-32B-Instruct",
+        cache_dir: str = "/model-cache",
+        hf_token: str = "",
+        **kwargs,
     ):
-        """Initialise the HuggingFace Inference API client (OpenAI-compatible)."""
-        from openai import OpenAI
-
-        if not hf_token:
-            raise RuntimeError("HF_TOKEN not set.")
+        import torch
+        from transformers import AutoTokenizer, AutoModelForCausalLM
 
         self.model_id = model_id
-        self.client   = OpenAI(
-            base_url=hf_base_url,
-            api_key=hf_token,
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_id,
+            cache_dir=cache_dir,
+            token=hf_token or None,
         )
-        print(f"HuggingFace API client ready — model: {self.model_id}")
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            cache_dir=cache_dir,
+            token=hf_token or None,
+            torch_dtype=torch.bfloat16,
+            device_map="auto",
+        )
+        self.model.eval()
+        print(f"Model loaded locally — model: {self.model_id}", flush=True)
 
 
     def _ask(self, prompt: str, max_new_tokens: int = 4000, temperature: float = 0.7) -> str:
-        response = self.client.chat.completions.create(
-            model=self.model_id,
-            max_tokens=max_new_tokens,
-            temperature=temperature,
-            top_p=0.9,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return response.choices[0].message.content.strip()
+        import torch
+        messages = [{"role": "user", "content": prompt}]
+        input_ids = self.tokenizer.apply_chat_template(
+            messages,
+            add_generation_prompt=True,
+            return_tensors="pt",
+        ).to(self.model.device)
+        with torch.no_grad():
+            output_ids = self.model.generate(
+                input_ids,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_p=0.9,
+                do_sample=True,
+                pad_token_id=self.tokenizer.eos_token_id,
+            )
+        new_tokens = output_ids[0][input_ids.shape[-1]:]
+        return self.tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
 
     def _extract_json(self, raw: str):
         cleaned = raw.strip()

@@ -7,7 +7,7 @@ import tempfile
 import subprocess
 from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import HTTPException, UploadFile, File, Form
 from fastapi.responses import Response
 
 load_dotenv(find_dotenv())
@@ -53,8 +53,6 @@ image = (
 app = modal.App("video-generator-api", image=image)
 
 
-# One container per SCENE — shots within a scene run sequentially
-# so each shot can use the last frame of the previous one
 @app.function(
     gpu=GPU,
     volumes={MODEL_CACHE: volume},
@@ -83,7 +81,6 @@ def generate_scene(payload: dict) -> dict:
 
 
 def _build_scene_payloads(scenes, root, background_images, character_images, seed):
-    """One payload per scene — all shots of a scene bundled together."""
     payloads   = []
     shot_order = []
 
@@ -163,7 +160,6 @@ def run_pipeline_from_zip(zip_bytes: bytes, seed: int = 42) -> bytes:
         scenes, root, background_images, character_images, seed
     )
     print(f"Total shots: {len(shot_order)} across {len(scenes)} scenes")
-    print(f"Scenes run in parallel — shots within each scene run sequentially")
 
     results = {}
     for scene_result in generate_scene.map(payloads):
@@ -197,39 +193,23 @@ def run_pipeline_from_zip(zip_bytes: bytes, seed: int = 42) -> bytes:
     return output.read_bytes()
 
 
-web_app = FastAPI(title="Video Generator API")
-
-
 @app.function(
     image=image,
     memory=2048,
     timeout=TIMEOUT,
 )
-@modal.asgi_app()
-def fastapi_app():
+@modal.fastapi_endpoint(method="POST")
+async def generate_from_zip(
+    story_zip: UploadFile = File(...),
+    seed:      int        = Form(default=42),
+) -> Response:
+    zip_bytes = await story_zip.read()
+    if not zip_bytes:
+        raise HTTPException(status_code=400, detail="zip file is empty")
 
-    @web_app.post(
-        "/generate-from-zip",
-        response_class=Response,
-        summary="Generate full video from story zip",
-    )
-    async def generate_from_zip(
-        story_zip: UploadFile = File(...),
-        seed:      int        = Form(default=42),
-    ):
-        zip_bytes = await story_zip.read()
-        if not zip_bytes:
-            raise HTTPException(status_code=400, detail="zip file is empty")
+    try:
+        final_video = run_pipeline_from_zip.remote(zip_bytes, seed)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-        try:
-            final_video = run_pipeline_from_zip.remote(zip_bytes, seed)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-
-        return Response(content=final_video, media_type="video/mp4")
-
-    @web_app.get("/health")
-    async def health():
-        return {"status": "ok"}
-
-    return web_app
+    return Response(content=final_video, media_type="video/mp4")

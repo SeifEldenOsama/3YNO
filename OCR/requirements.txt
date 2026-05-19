@@ -1,0 +1,14 @@
+git+https://github.com/huggingface/transformers.git
+torch
+torchvision
+torchaudio
+pillow
+pydantic
+fastapi[standard]
+modal
+python-dotenv
+pyyaml
+huggingface_hub
+accelerate
+sentencepiece
+protobuf

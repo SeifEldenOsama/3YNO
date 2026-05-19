@@ -104,61 +104,24 @@ class StoryGeneratorAPI:
 
         print("Stage 5/5 — Organizing files and zipping...", flush=True)
 
+        from src.save_outputs import save_all
+
         temp_dir   = tempfile.mkdtemp()
         story_name = lesson.replace(" ", "_")[:30]
-        base_path  = os.path.join(temp_dir, story_name)
-        os.makedirs(base_path)
+        out_dir    = os.path.join(temp_dir, story_name)
+        os.makedirs(out_dir)
 
-        full_data = {
-            "lesson":         lesson,
-            "lesson_steps":   lesson_steps,
-            "characters":     characters,
-            "backgrounds":    backgrounds,
-            "outline":        outline,
-            "story_passages": passages,
-            "voice_scripts":  scripts,
-        }
-
-        with open(os.path.join(base_path, "story_index.json"), "w") as f:
-            json.dump(full_data, f, indent=2)
-
-        assets_dir = os.path.join(base_path, "assets")
-        os.makedirs(os.path.join(assets_dir, "characters"),  exist_ok=True)
-        os.makedirs(os.path.join(assets_dir, "backgrounds"), exist_ok=True)
-
-        with open(os.path.join(assets_dir, "characters", "characters.json"), "w") as f:
-            json.dump(characters, f, indent=2)
-        with open(os.path.join(assets_dir, "backgrounds", "backgrounds.json"), "w") as f:
-            json.dump(backgrounds, f, indent=2)
-
-        scenes_dir       = os.path.join(base_path, "scenes")
-        scripts_by_scene = {s["scene_number"]: s["script"] for s in scripts}
-
-        for scene in outline:
-            scene_num   = scene["scene_number"]
-            scene_title = scene["title"].replace(" ", "_").replace("'", "")
-            scene_path  = os.path.join(scenes_dir, f"scene_{scene_num:02d}_{scene_title}")
-            shots_path  = os.path.join(scene_path, "shots")
-            os.makedirs(shots_path, exist_ok=True)
-
-            with open(os.path.join(scene_path, "scene.json"), "w") as f:
-                json.dump(scene, f, indent=2)
-
-            scene_script = scripts_by_scene.get(scene_num, [])
-            for i, shot in enumerate(scene_script, 1):
-                shot_name = f"shot_{i:02d}_{shot['speaker']}"
-                shot_path = os.path.join(shots_path, shot_name)
-                os.makedirs(shot_path, exist_ok=True)
-
-                with open(os.path.join(shot_path, "voice.txt"), "w") as f:
-                    f.write(shot["text"])
-                with open(os.path.join(shot_path, "prompt.txt"), "w") as f:
-                    f.write(shot["video_prompt"])
-                with open(os.path.join(shot_path, "metadata.json"), "w") as f:
-                    json.dump(shot, f, indent=2)
+        save_all(
+            result  = {
+                "characters":   characters,
+                "backgrounds":  backgrounds,
+                "voice_scripts": scripts,
+            },
+            out_dir = out_dir,
+        )
 
         zip_path = os.path.join(temp_dir, f"{story_name}.zip")
-        shutil.make_archive(os.path.join(temp_dir, story_name), "zip", base_path)
+        shutil.make_archive(os.path.join(temp_dir, story_name), "zip", temp_dir, story_name)
 
         print("Done!", flush=True)
 

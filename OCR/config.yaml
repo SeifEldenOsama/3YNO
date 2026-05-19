@@ -1,0 +1,18 @@
+model:
+  name: "zai-org/GLM-OCR"
+  device: "cuda"
+  dtype: "auto"
+
+inference:
+  max_new_tokens: 8192
+  prompt: "Text Recognition:"
+  local_output: "./outputs"
+
+modal:
+  gpu: "A10G"
+  timeout: 3600
+  volume_name: "glm-ocr-cache"
+  cache_dir: "/model-cache"
+
+api:
+  app_name: "glm-ocr-api"

@@ -106,11 +106,14 @@ class StoryGeneratorAPI:
 
         from src.save_outputs import save_all
 
-        temp_dir   = tempfile.mkdtemp()
-        story_name = lesson.replace(" ", "_")[:30]
-        out_dir    = os.path.join(temp_dir, story_name)
+        # Create a temporary container directory
+        temp_dir = tempfile.mkdtemp()
+        
+        # Enforce target directory to be named exactly "outputs"
+        out_dir = os.path.join(temp_dir, "outputs")
         os.makedirs(out_dir)
 
+        # Save generated objects straight into the "outputs" directory
         save_all(
             result  = {
                 "characters":   characters,
@@ -120,13 +123,15 @@ class StoryGeneratorAPI:
             out_dir = out_dir,
         )
 
-        zip_path = os.path.join(temp_dir, f"{story_name}.zip")
-        shutil.make_archive(os.path.join(temp_dir, story_name), "zip", temp_dir, story_name)
+        zip_path = os.path.join(temp_dir, "outputs.zip")
+        
+        # Zips files located directly inside out_dir, omitting any parent directory paths
+        shutil.make_archive(os.path.join(temp_dir, "outputs"), "zip", out_dir)
 
         print("Done!", flush=True)
 
         return FileResponse(
             path       = zip_path,
-            filename   = f"{story_name}.zip",
+            filename   = "outputs.zip",
             media_type = "application/zip",
         )

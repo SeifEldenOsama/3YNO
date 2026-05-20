@@ -159,3 +159,5 @@ Refer to individual module READMEs for specific dependency installation.
 - [x] Apply each voice generated for each character with its image, to generate small video scene for each one
 - [x] Integrate all the video scenes into one educational interactive video
 - [x] 3YNO Chatbot — dyslexia support AI assistant (Gemini 2.5 Flash)
+- [x] Quiz Generator after each video
+- [x] OCR text reader for camera upload

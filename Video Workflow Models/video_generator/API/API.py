@@ -25,6 +25,7 @@ TIMEOUT        = 7200
 SCALEDOWN      = 60
 PYTHON_VERSION = "3.12"
 MODEL_CACHE    = "/model-cache"
+CLIPS_DIR      = f"{MODEL_CACHE}/clips"   # shared volume path for inter-function clip transfer
 
 volume = modal.Volume.from_name(VOLUME_NAME, create_if_missing=True)
 
@@ -61,7 +62,12 @@ app = modal.App("video-generator-api", image=image)
     secrets=[modal.Secret.from_name("my-huggingface-secret")],
 )
 def generate_scene(payload: dict) -> dict:
-    """Each call handles all shots of one scene sequentially."""
+    """
+    Handles all shots of one scene sequentially.
+    Saves each clip to the shared Volume and returns a dict of
+    { shot_id -> volume_path } instead of raw bytes, avoiding
+    the BlobGet / large-payload transfer issue.
+    """
     import sys
     sys.path.insert(0, "/root/project")
     from src.generator import VideoGenerator
@@ -71,7 +77,8 @@ def generate_scene(payload: dict) -> dict:
     gen = VideoGenerator(cfg)
     gen.load_model()
 
-    return gen.generate_pipeline(
+    # generate_pipeline returns { shot_id: clip_bytes }
+    clip_map: dict = gen.generate_pipeline(
         shots             = payload["shots"],
         background_images = payload["background_images"],
         character_images  = payload["character_images"],
@@ -79,8 +86,25 @@ def generate_scene(payload: dict) -> dict:
         seed              = payload["seed"],
     )
 
+    # --- FIX: write clips to the shared Volume; return paths not bytes ---
+    run_id   = payload.get("run_id", "default")
+    clips_dir = Path(CLIPS_DIR) / run_id
+    clips_dir.mkdir(parents=True, exist_ok=True)
 
-def _build_scene_payloads(scenes, root, background_images, character_images, seed):
+    saved_paths: dict[str, str] = {}
+    for shot_id, clip_bytes in clip_map.items():
+        clip_path = clips_dir / f"{shot_id}.mp4"
+        clip_path.write_bytes(clip_bytes)
+        saved_paths[shot_id] = str(clip_path)
+        print(f"  Saved clip to volume: {clip_path} ({len(clip_bytes)/1024:.1f} KB)")
+
+    # Commit so the orchestrator container can immediately read the files
+    volume.commit()
+
+    return saved_paths   # small dict of strings — no BlobGet triggered
+
+
+def _build_scene_payloads(scenes, root, background_images, character_images, seed, run_id):
     payloads   = []
     shot_order = []
 
@@ -123,6 +147,7 @@ def _build_scene_payloads(scenes, root, background_images, character_images, see
             "character_images":  character_images,
             "audio_files":       scene_audio,
             "seed":              seed,
+            "run_id":            run_id,   # passed so each run gets its own subfolder
         })
 
     return payloads, shot_order
@@ -130,11 +155,16 @@ def _build_scene_payloads(scenes, root, background_images, character_images, see
 
 @app.function(
     image=image,
+    volumes={MODEL_CACHE: volume},   # FIX: mount the volume so clips written by GPU workers are readable here
     timeout=TIMEOUT,
     memory=8192,
 )
 def run_pipeline_from_zip(zip_bytes: bytes, seed: int = 42) -> bytes:
+    import uuid
     tmp_dir = Path(tempfile.mkdtemp())
+
+    # Unique ID for this run to avoid cross-run filename collisions in the volume
+    run_id = uuid.uuid4().hex[:12]
 
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
         zf.extractall(tmp_dir)
@@ -157,23 +187,31 @@ def run_pipeline_from_zip(zip_bytes: bytes, seed: int = 42) -> bytes:
     scenes     = shots_flow["scenes"]
 
     payloads, shot_order = _build_scene_payloads(
-        scenes, root, background_images, character_images, seed
+        scenes, root, background_images, character_images, seed, run_id
     )
-    print(f"Total shots: {len(shot_order)} across {len(scenes)} scenes")
+    print(f"Total shots: {len(shot_order)} across {len(scenes)} scenes  [run_id={run_id}]")
 
-    results = {}
+    # --- FIX: collect volume paths (strings), not raw bytes ---
+    path_results: dict[str, str] = {}
     for scene_result in generate_scene.map(payloads):
-        results.update(scene_result)
+        path_results.update(scene_result)
+
+    # Reload the volume so freshly-written clips are visible in this container
+    volume.reload()
 
     clips_dir = tmp_dir / "clips"
     clips_dir.mkdir()
     clips = []
     for shot_id in shot_order:
-        clip_bytes = results.get(shot_id)
-        if clip_bytes:
-            p = clips_dir / f"{shot_id}.mp4"
-            p.write_bytes(clip_bytes)
-            clips.append(p)
+        clip_volume_path = path_results.get(shot_id)
+        if not clip_volume_path:
+            print(f"WARNING: No clip found for {shot_id}, skipping.")
+            continue
+        # Read from the shared volume path and write locally for ffmpeg concat
+        clip_bytes = Path(clip_volume_path).read_bytes()
+        local_path = clips_dir / f"{shot_id}.mp4"
+        local_path.write_bytes(clip_bytes)
+        clips.append(local_path)
 
     if not clips:
         raise ValueError("No clips were generated")
@@ -189,6 +227,13 @@ def run_pipeline_from_zip(zip_bytes: bytes, seed: int = 42) -> bytes:
         "-c", "copy",
         str(output),
     ], check=True)
+
+    # Clean up this run's clips from the volume to avoid accumulation
+    run_clips_dir = Path(CLIPS_DIR) / run_id
+    if run_clips_dir.exists():
+        import shutil
+        shutil.rmtree(run_clips_dir)
+        volume.commit()
 
     return output.read_bytes()
 

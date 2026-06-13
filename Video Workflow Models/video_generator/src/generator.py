@@ -187,14 +187,30 @@ class VideoGenerator:
         # The Static Camera LoRA responds best when camera control tokens
         # appear at the START and are the dominant instruction.
         # User prompt is appended after — animation details only, no camera words.
+        # Text-suppression tokens are placed at BOTH ends — the model tends to
+        # hallucinate title/caption text especially at the top of the frame.
         STATIC_PREFIX = (
             "Static camera. Fixed wide shot. Camera locked. No zoom. No movement. "
             "No dolly. No pan. No tilt. No camera shake. "
+            "No text. No words. No letters. No captions. No titles. No labels. "
+            "No watermark. No subtitles. No writing. No typography. "
         )
         STATIC_SUFFIX = (
-            " Camera does not move. Static shot. Wide angle. No zoom in. No close up."
+            " Camera does not move. Static shot. Wide angle. No zoom in. No close up. "
+            "No text overlay. No on-screen text. No captions. No words. Pure visual scene only."
         )
         prompt = STATIC_PREFIX + prompt.strip() + STATIC_SUFFIX
+
+        # Always prepend strong text-suppression tokens to the negative prompt.
+        # This runs regardless of what the per-shot negative_prompt contains,
+        # because the model reliably hallucinates title/caption text at the top.
+        NO_TEXT_NEGATIVE = (
+            "text, words, letters, alphabet, characters, font, typography, "
+            "title, caption, subtitle, label, watermark, inscription, writing, "
+            "on-screen text, overlay text, speech bubble, dialogue box, "
+            "heading, headline, banner, sign, poster text, book text, "
+        )
+        negative_prompt = NO_TEXT_NEGATIVE + negative_prompt.lstrip(", ")
 
         padded_audio, total_duration = pad_audio(audio_bytes, pad_secs=tail_secs)
         num_frames = calc_num_frames(total_duration, self.cfg.generation.fps)
@@ -279,7 +295,7 @@ class VideoGenerator:
         width, height  = auto_resolution(raw_ref, quality=self.cfg.generation.quality)
         print(f"Output resolution: {width}x{height}")
 
-        RELAX_SECS       = 2.0
+        RELAX_SECS       = 1.0
         DARK_BUFFER_SECS = 3.0
         TAIL_SECS = DARK_BUFFER_SECS + RELAX_SECS
 

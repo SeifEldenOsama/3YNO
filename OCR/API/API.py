@@ -66,4 +66,4 @@ async def ocr(file: UploadFile = File(...), prompt: str = "Text Recognition:"):
     image_bytes = await file.read()
     result = GLMOCRModel().process.remote(image_bytes, prompt=prompt)
     
-    return JSONResponse(content={"text": result})
+    return JSONResponse(content={"lesson_text": result})

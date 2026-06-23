@@ -10,7 +10,7 @@ model:
   cache_dir:   "/model-cache"
 
 generation:
-  quality:          "fhd"      # sd | hd | fhd
+  quality:          "hd"       # sd | hd | fhd  — changed from fhd to hd (1280x768 vs 1920x1088)
   fps:              24.0
   seed:             -1         # -1 = random
   num_steps:        8

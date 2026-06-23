@@ -30,11 +30,11 @@ RATIO_VALUES = {
 QUALITY_INDEX = {"sd": 0, "hd": 1, "fhd": 2}
 
 
-def auto_resolution(image: Image.Image, quality: str = "fhd") -> tuple[int, int]:
+def auto_resolution(image: Image.Image, quality: str = "hd") -> tuple[int, int]:
     w, h    = image.size
     ratio   = w / h
     closest = min(RATIO_VALUES, key=lambda k: abs(RATIO_VALUES[k] - ratio))
-    idx     = QUALITY_INDEX.get(quality, 2)
+    idx     = QUALITY_INDEX.get(quality, 1)
     tw, th  = AUTO_RESOLUTIONS[closest][idx]
     print(f"Image {w}x{h} ({ratio:.3f}) → {closest} → {tw}x{th}")
     return tw, th
@@ -172,7 +172,7 @@ class VideoGenerator:
         negative_prompt: str,
         seed:         int,
         tail_secs:    float = 1.5,
-        quality:      str   = "fhd",
+        quality:      str   = "hd",
     ) -> bytes:
         import torch
 
@@ -239,16 +239,26 @@ class VideoGenerator:
         frames = video_output[0] if isinstance(video_output[0], list) else video_output
         np_frames = [np.array(img) for img in frames]
 
+        # Write frames as a lossless intermediate so ffmpeg can do the real
+        # compression in the mux step. quality=5 is a safe middle ground that
+        # keeps imageio happy while not wasting disk space on a temp file that
+        # gets re-encoded immediately after.
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
             raw_path = f.name
-        imageio.mimsave(raw_path, np_frames, fps=self.cfg.generation.fps, format="mp4", quality=9)
+        imageio.mimsave(raw_path, np_frames, fps=self.cfg.generation.fps, format="mp4", quality=5)
 
+        # Re-encode with libx264 CRF 23 while muxing audio.
+        # This is the main compression step — CRF 23 is ffmpeg's default and
+        # produces visually transparent quality at a fraction of the size of
+        # the imageio quality=9 output. Lower CRF = better quality / larger
+        # file; raise to 28 for smaller files if needed.
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
             muxed_path = f.name
         subprocess.run([
             "ffmpeg", "-y",
             "-i", raw_path, "-i", padded_audio,
-            "-c:v", "copy", "-c:a", "aac",
+            "-c:v", "libx264", "-crf", "23", "-preset", "fast",
+            "-c:a", "aac",
             muxed_path,
         ], check=True, capture_output=True)
 

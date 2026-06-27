@@ -109,8 +109,13 @@ def _build_scene_payloads(scenes, root, background_images, character_images, see
     shot_order = []
 
     for scene in scenes:
-        scene_id    = scene["scene_id"]
-        bg_name     = Path(scene["background"]).stem
+        scene_id      = scene["scene_id"]
+        is_host_scene = scene.get("is_host_scene", False)
+
+        # Background: host scenes have no background (None), regular scenes have a path
+        bg_raw  = scene.get("background")
+        bg_name = Path(bg_raw).stem if bg_raw else None
+
         scene_chars = scene["characters"]
 
         scene_shots = []
@@ -133,6 +138,7 @@ def _build_scene_payloads(scenes, root, background_images, character_images, see
                 "video_prompt":       shot.get("video_prompt"),
                 "negative_prompt":    shot.get("negative_prompt"),
                 "speaker":            shot.get("speaker", ""),
+                "is_host_scene":      is_host_scene,
                 "characters_present": [
                     {"name": c["name"], "position": c["position"]}
                     for c in scene_chars

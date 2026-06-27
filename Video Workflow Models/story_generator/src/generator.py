@@ -18,6 +18,51 @@ GEMINI_VOICES = {
     "Sulafat":   "female",
 }
 
+# ---------------------------------------------------------------------------
+# 3YNO — Fixed host character (crow). Never AI-generated; user supplies PNG.
+# ---------------------------------------------------------------------------
+ZYNO_VOICE_DESCRIPTION = (
+    "Orus A warm and wise male voice with a friendly, enthusiastic tone, "
+    "speaking with clear storytelling energy and calm confidence. "
+    "The voice is inviting and encouraging, making young children feel "
+    "excited and safe to learn."
+)
+
+ZYNO_CHARACTER = {
+    "name":                 "3YNO",
+    "gender":               "male",
+    "visual_noun":          "the wise black crow with gleaming golden eyes",
+    "voice_description":    ZYNO_VOICE_DESCRIPTION,
+    "visual_description":   (
+        "FIXED IMAGE — DO NOT GENERATE. "
+        "Place the fixed 3YNO crow PNG at characters/3YNO.png before running the video generator."
+    ),
+    "what_they_represent":  "the host and guide of the educational show",
+    "role":                 "educational show host",
+    "personality":          "wise, friendly, enthusiastic, encouraging",
+    "is_host":              True,
+    "skip_generation":      True,
+}
+
+ZYNO_VIDEO_PROMPT = (
+    "A pure white background with a friendly cartoon black crow character standing at center frame. "
+    "The crow is the only element in the scene — no environment, no props, no scenery. "
+    "The crow speaks directly to camera, its beak opening and closing in perfect synchronization "
+    "with the voice audio. The crow's golden eyes blink expressively and its body animates "
+    "naturally and warmly as it talks. "
+    "No text, no words, no letters, no captions, no labels of any kind appear anywhere in the scene."
+)
+
+ZYNO_NEGATIVE_PROMPT = (
+    "text, words, letters, captions, subtitles, typography, font, label, title, watermark, "
+    "writing, inscription, alphabets, numbers, digits, overlay text, on-screen text, "
+    "speech bubble, dialogue box, low quality, blurry, pixelated, distorted, deformed, "
+    "ugly, bad anatomy, duplicate, error, cropped, out of frame, worst quality, "
+    "jpeg artifacts, overexposed, underexposed, background scenery, landscape, nature, "
+    "sky, ground, grass, trees, buildings, clouds"
+)
+
+
 class StoryGenerator:
 
     def load_model(
@@ -613,3 +658,126 @@ Return ONLY the JSON array."""
             })
             print(f"Scene {sp['scene_number']} scripted ({len(lines)} lines).", flush=True)
         return all_scripts
+
+    # ------------------------------------------------------------------
+    # 3YNO host scenes
+    # ------------------------------------------------------------------
+
+    def generate_3yno_scenes(self, lesson: str, scripts: list) -> list:
+        """
+        Generate 3YNO host scenes to wrap and bridge the regular story scenes:
+          - 1 intro  : welcome + full lesson brief + preview of Scene 1
+          - N-1 transitions : recap previous scene + preview next scene
+          - 1 outro  : congratulate kids + full lesson recap + goodbye
+
+        Returns a list of host-scene dicts ordered by insertion position.
+        Each dict has:
+          type          : "intro" | "transition" | "outro"
+          insert_before : scene_number of the regular scene that follows (None for outro)
+          after_scene   : scene_number of the scene just finished (transitions only)
+          text          : the spoken dialogue for 3YNO
+        """
+        scene_meta = [
+            (s["scene_number"], s["title"], s["lesson_element"])
+            for s in scripts
+        ]
+        num_scenes = len(scene_meta)
+        host_scenes = []
+
+        # INTRO
+        first_num, first_title, _ = scene_meta[0]
+        scene_list_text = "\n".join(
+            f"  * Scene {n}: {t} (teaches: {e})" for n, t, e in scene_meta
+        )
+        intro_prompt = (
+            "You are 3YNO, a friendly and wise crow who hosts a children's educational show.\n"
+            "You are about to introduce today's episode to young children (ages 5-8).\n\n"
+            f"TODAY'S LESSON:\n{lesson}\n\n"
+            f"SCENES THAT WILL FOLLOW:\n{scene_list_text}\n\n"
+            "Write 3YNO's INTRO speech. It MUST:\n"
+            "1. Warmly welcome the children to the show (1-2 sentences).\n"
+            "2. Give an exciting, fast brief of the FULL lesson and its main concepts (2-3 sentences).\n"
+            f"3. Tease what will happen in the FIRST scene \"{first_title}\" (1-2 sentences).\n\n"
+            "RULES:\n"
+            "- Speak DIRECTLY to kids (use 'you', 'we', 'let us').\n"
+            "- Simple vocabulary for ages 5-8.\n"
+            "- Cheerful, warm, enthusiastic tone.\n"
+            "- 60 to 90 words total.\n\n"
+            'Return ONLY a JSON object: {"text": "<speech here>"}'
+        )
+        raw = self._ask_json(intro_prompt, max_new_tokens=500, temperature=0.5)
+        intro_text = raw.get("text", "") if isinstance(raw, dict) else str(raw)
+        host_scenes.append({
+            "type":          "intro",
+            "insert_before": first_num,
+            "after_scene":   None,
+            "text":          intro_text,
+        })
+        print("3YNO intro scene generated.", flush=True)
+
+        # TRANSITIONS (between every pair of regular scenes)
+        for i in range(num_scenes - 1):
+            cur_num,  cur_title,  cur_elem  = scene_meta[i]
+            next_num, next_title, next_elem = scene_meta[i + 1]
+            trans_prompt = (
+                "You are 3YNO, a friendly and wise crow hosting a children's educational show.\n"
+                "You appear between two scenes to bridge them.\n\n"
+                f"PREVIOUS SCENE: \"{cur_title}\" -- taught: {cur_elem}\n"
+                f"NEXT SCENE:     \"{next_title}\" -- will teach: {next_elem}\n\n"
+                "Write 3YNO's TRANSITION speech. It MUST:\n"
+                "1. Give a brief, exciting recap of the PREVIOUS scene (2-3 sentences).\n"
+                "2. Build anticipation for the NEXT scene (1-2 sentences).\n\n"
+                "RULES:\n"
+                "- Speak DIRECTLY to kids (use 'you', 'we', 'let us').\n"
+                "- Simple vocabulary for ages 5-8.\n"
+                "- Cheerful, warm, enthusiastic tone.\n"
+                "- 45 to 65 words total.\n\n"
+                'Return ONLY a JSON object: {"text": "<speech here>"}'
+            )
+            raw = self._ask_json(trans_prompt, max_new_tokens=400, temperature=0.5)
+            trans_text = raw.get("text", "") if isinstance(raw, dict) else str(raw)
+            host_scenes.append({
+                "type":          "transition",
+                "insert_before": next_num,
+                "after_scene":   cur_num,
+                "text":          trans_text,
+            })
+            print(
+                f"3YNO transition scene generated (scene {cur_num} -> {next_num}).",
+                flush=True,
+            )
+
+        # OUTRO
+        last_num, last_title, _ = scene_meta[-1]
+        outro_prompt = (
+            "You are 3YNO, a friendly and wise crow hosting a children's educational show.\n"
+            "The episode is over and you appear at the very end to say goodbye.\n\n"
+            f"FULL LESSON TAUGHT TODAY:\n{lesson}\n\n"
+            f"ALL SCENES COVERED:\n{scene_list_text}\n\n"
+            "Write 3YNO's OUTRO speech. It MUST:\n"
+            "1. Congratulate the kids for watching and learning (1-2 sentences).\n"
+            "2. Briefly summarize the most important things they learned today (2-3 sentences).\n"
+            "3. Say a warm, friendly goodbye and invite them to come back (1-2 sentences).\n\n"
+            "RULES:\n"
+            "- Speak DIRECTLY to kids (use 'you', 'we').\n"
+            "- Simple vocabulary for ages 5-8.\n"
+            "- Warm, proud, encouraging tone.\n"
+            "- 60 to 90 words total.\n\n"
+            'Return ONLY a JSON object: {"text": "<speech here>"}'
+        )
+        raw = self._ask_json(outro_prompt, max_new_tokens=500, temperature=0.5)
+        outro_text = raw.get("text", "") if isinstance(raw, dict) else str(raw)
+        host_scenes.append({
+            "type":          "outro",
+            "insert_before": None,
+            "after_scene":   last_num,
+            "text":          outro_text,
+        })
+        print("3YNO outro scene generated.", flush=True)
+
+        print(
+            f"3YNO host scenes complete: {len(host_scenes)} "
+            f"(1 intro + {num_scenes - 1} transition(s) + 1 outro).",
+            flush=True,
+        )
+        return host_scenes

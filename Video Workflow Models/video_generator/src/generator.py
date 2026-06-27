@@ -299,10 +299,25 @@ class VideoGenerator:
 
         results = {}
 
-        first_bg_name  = shots[0]["background_name"]
-        first_bg_bytes = background_images[first_bg_name]
-        raw_ref        = Image.open(io.BytesIO(first_bg_bytes)).convert("RGB")
-        width, height  = auto_resolution(raw_ref, quality=self.cfg.generation.quality)
+        # Determine output resolution from the first usable reference frame.
+        # For 3YNO host scenes the background is None, so fall back to the
+        # 3YNO character image itself to derive the resolution.
+        first_shot        = shots[0]
+        first_is_host     = first_shot.get("is_host_scene", False)
+        first_bg_name     = first_shot.get("background_name")
+
+        if first_is_host or first_bg_name is None:
+            ref_bytes = character_images.get("3YNO")
+            if ref_bytes is None:
+                raise ValueError(
+                    "3YNO host scene found but character_images has no '3YNO' entry. "
+                    "Place characters/3YNO.png in the zip before running the video generator."
+                )
+        else:
+            ref_bytes = background_images[first_bg_name]
+
+        raw_ref       = Image.open(io.BytesIO(ref_bytes)).convert("RGB")
+        width, height = auto_resolution(raw_ref, quality=self.cfg.generation.quality)
         print(f"Output resolution: {width}x{height}")
 
         RELAX_SECS       = 1.0
@@ -312,22 +327,38 @@ class VideoGenerator:
         last_clip_bytes = None  # track previous shot clip to extract last frame
 
         for shot in shots:
-            shot_id   = shot["shot_id"]
-            bg_name   = shot["background_name"]
-            prompt    = shot.get("video_prompt") or self.cfg.generation.default_prompt
-            neg       = shot.get("negative_prompt") or self.cfg.negative_prompt
-            scene_num = shot["scene_number"]
-            shot_num  = shot["shot_number"]
-            speaker   = shot.get("speaker", "")
+            shot_id       = shot["shot_id"]
+            bg_name       = shot.get("background_name")
+            prompt        = shot.get("video_prompt") or self.cfg.generation.default_prompt
+            neg           = shot.get("negative_prompt") or self.cfg.negative_prompt
+            scene_num     = shot["scene_number"]
+            shot_num      = shot["shot_number"]
+            speaker       = shot.get("speaker", "")
+            is_host_scene = shot.get("is_host_scene", False)
 
             print(f"\n{'='*60}")
-            print(f"Scene {scene_num} | Shot {shot_num} | {shot_id} | speaker={speaker}")
+            print(f"Scene {scene_num} | Shot {shot_num} | {shot_id} | speaker={speaker} | host={is_host_scene}")
 
-            bg_bytes    = background_images.get(bg_name)
+            bg_bytes    = background_images.get(bg_name) if bg_name else None
             scene_chars = shot.get("characters_present", [])
 
-            if last_clip_bytes is not None:
-                # Extract last frame from previous clip as starting frame
+            if is_host_scene:
+                # ── 3YNO HOST SCENE ────────────────────────────────────────
+                # Use the user-supplied fixed image directly as the starting
+                # frame. The image is already on a pure white background, so
+                # we bypass compositing entirely.
+                zyno_bytes = character_images.get("3YNO")
+                if zyno_bytes is None:
+                    raise ValueError(
+                        f"3YNO image not found for host shot {shot_id}. "
+                        "Ensure characters/3YNO.png is present in the zip."
+                    )
+                frame_bytes = zyno_bytes
+                print(f"  Host scene: using 3YNO fixed image ({len(frame_bytes)/1024:.1f} KB)")
+
+            elif last_clip_bytes is not None:
+                # ── WITHIN-SCENE CONTINUITY ────────────────────────────────
+                # Extract last frame from previous clip as starting frame.
                 print(f"  Extracting last frame from previous clip...")
                 with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as f:
                     f.write(last_clip_bytes)
@@ -348,7 +379,7 @@ class VideoGenerator:
                 print(f"  Last frame extracted: {len(frame_bytes)/1024:.1f} KB")
 
             elif scene_chars:
-                # First shot — composite fresh frame
+                # ── FIRST SHOT OF REGULAR SCENE ───────────────────────────
                 print(f"  Compositing frame for shot {shot_id}...")
                 chars_in_shot = []
                 for cp in scene_chars:
@@ -362,7 +393,7 @@ class VideoGenerator:
                         "name":        name,
                         "image_bytes": c_bytes,
                         "position":    position,
-                        "is_speaker":  name == speaker,  # correctly mark the speaker
+                        "is_speaker":  name == speaker,
                     })
                 frame_bytes = composite_frame(
                     background_bytes = bg_bytes,
@@ -375,6 +406,7 @@ class VideoGenerator:
                 with open(debug_path, "wb") as _df:
                     _df.write(frame_bytes)
                 print(f"  DEBUG frame saved -> {debug_path}")
+
             elif bg_bytes is not None:
                 print("  WARNING: No characters -- using bare background.")
                 frame_bytes = bg_bytes
@@ -394,9 +426,9 @@ class VideoGenerator:
                 seed=seed,
                 tail_secs=TAIL_SECS,
             )
-            trimmed = trim_tail(raw_clip, trim_secs=DARK_BUFFER_SECS)  # only trim dark frames, keep RELAX_SECS visible
+            trimmed = trim_tail(raw_clip, trim_secs=DARK_BUFFER_SECS)
             results[shot_id] = trimmed
-            last_clip_bytes  = trimmed  # pass to next shot
+            last_clip_bytes  = trimmed
             print(f"  Clip done: {len(trimmed)/1024:.1f} KB")
 
         print(f"\nPipeline complete. {len(results)} clips generated.")

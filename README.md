@@ -83,7 +83,7 @@ Fine-tuned [black-forest-labs/FLUX.1-dev](https://huggingface.co/black-forest-la
 | Approach | LoRA fine-tuning (rank 16, alpha 16) |
 | Dataset | Character descriptions (~2016 images) |
 | Training | 2000 steps on H100 80GB |
-| HF Repo | [seifosamahosney/flux-lora-characters](https://huggingface.co/seifosamahosney/flux-lora-characters) |
+| HF Repo | [SeifElden2342532/flux-lora-characters](https://huggingface.co/SeifElden2342532/flux-lora-characters) |
 
 ---
 

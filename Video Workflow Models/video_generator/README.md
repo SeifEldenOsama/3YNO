@@ -236,12 +236,7 @@ curl -X POST https://<your-modal-url>/generate-from-zip \
   --output final_video.mp4
 ```
 
-### Health check
-
-```bash
-GET https://<your-modal-url>/health
-# → {"status": "ok"}
-```
+> Note: there is currently no health-check endpoint deployed alongside `/generate-from-zip` — `API/API.py` only defines the generate endpoint.
 
 ---
 
@@ -278,7 +273,7 @@ make modal-generate  PROMPT="your prompt here"
 | `model.lora_id` | `Lightricks/LTX-2-19b-LoRA-Camera-Control-Static` | Camera Control LoRA |
 | `model.lora_scale` | `1.0` | LoRA blend strength |
 | `model.cache_dir` | `/model-cache` | Weight cache path on Modal volume |
-| `generation.quality` | `fhd` | Resolution preset: `sd` / `hd` / `fhd` |
+| `generation.quality` | `hd` | Resolution preset: `sd` / `hd` / `fhd` (shipped config was changed from `fhd` to `hd`; see resolution table below) |
 | `generation.fps` | `24.0` | Output frame rate |
 | `generation.seed` | `-1` | `-1` = random each run |
 | `generation.num_steps` | `8` | Diffusion steps (distilled schedule) |
@@ -303,7 +298,17 @@ make modal-generate  PROMPT="your prompt here"
 | LoRA scale | `1.0` |
 | GPU | H200 141 GB |
 | Inference steps | 8 (distilled sigma schedule) |
-| Supported resolutions | 512×512 · 768×512 · 512×768 (auto-selected from image aspect ratio) |
+| Supported resolutions | Auto-selected from image aspect ratio and `generation.quality` tier — see table below |
+
+**Resolution table** (width × height, from `auto_resolution()` in `src/generator.py`):
+
+| Aspect ratio | `sd` | `hd` (shipped default) | `fhd` |
+|---|---|---|---|
+| 16:9 | 768×512 | 1280×768 | 1920×1088 |
+| 9:16 | 512×768 | 768×1280 | 1088×1920 |
+| 1:1 | 512×512 | 768×768 | 1024×1024 |
+| 4:3 | 512×384 | 768×576 | 1024×768 |
+| 3:4 | 384×512 | 576×768 | 768×1024 |
 
 ---
 

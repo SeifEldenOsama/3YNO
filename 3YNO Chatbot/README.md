@@ -40,7 +40,12 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Fill in `.env`:
+Fill in `.env` (see `.env.example`):
+```env
+GEMINI_API_KEY="your_key_here"
+```
+
+For multi-key rotation/fallback, use the plural variable name instead — the code checks `GEMINI_API_KEYS` first and falls back to `GEMINI_API_KEY`:
 ```env
 GEMINI_API_KEYS=your_key_1,your_key_2,your_key_3
 ```
@@ -107,7 +112,7 @@ Content-Type: application/json
 
 {
   "message": "What are signs of dyslexia in a 7-year-old?",
-  "reset": false
+  "history": []
 }
 ```
 
@@ -119,16 +124,7 @@ Response:
 }
 ```
 
-### Reset endpoint
-
-```bash
-POST https://<your-modal-url>/reset_conversation
-```
-
-Response:
-```json
-{ "status": "conversation reset" }
-```
+> ⚠️ **Current behavior:** the deployed API resets the bot's conversation on **every** call to `/chat`, so multi-turn context is not actually preserved server-side between requests. The `history` field in the request body is also accepted but currently has no effect (the class it would populate doesn't implement it). There is no separate reset endpoint — every message is effectively a fresh conversation. If you need true multi-turn behavior, use the local CLI (`scripts/chat.py`) or the Modal cloud function (`cloud/run.py`), both of which maintain history correctly in-process.
 
 ---
 
@@ -153,7 +149,7 @@ Response:
 | Model | `gemini-2.5-flash` |
 | Provider | Google Generative AI |
 | Approach | Prompt engineering (system prompt) |
-| Multi-turn | Yes — full conversation history maintained per session |
+| Multi-turn | Yes, in-process (CLI / Modal cloud function) — full conversation history maintained per session. The deployed HTTP API currently resets history on every call; see "Chat endpoint" note below. |
 | GPU required | No |
 | Cloud runtime | [Modal](https://modal.com) |
 

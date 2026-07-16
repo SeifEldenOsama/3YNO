@@ -55,6 +55,21 @@ modal run cloud/inference.py --image-path path/to/your/image.png --prompt "Text 
 modal deploy API/API.py
 ```
 
+Then POST an image to the deployed endpoint:
+
+```bash
+curl -X POST https://<your-modal-url>/ocr \
+  -F "file=@path/to/your/image.png" \
+  -F "prompt=Text Recognition:"
+```
+
+Request: `multipart/form-data` with a required `file` (image) field and an optional `prompt` field (defaults to `"Text Recognition:"`).
+
+Response:
+```json
+{ "lesson_text": "...recognized text..." }
+```
+
 ---
 
 ## 🎛️ Configuration

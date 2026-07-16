@@ -107,6 +107,19 @@ python scripts/upload.py
 modal deploy API/API.py
 ```
 
+Then POST to the deployed URL:
+
+```bash
+curl -X POST https://<your-modal-url>/generate \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "a warrior character", "num_inference_steps": 28, "guidance_scale": 3.5, "seed": 42, "width": 1024, "height": 1024}' \
+  --output result.png
+```
+
+Response: raw `image/png` bytes.
+
+> ⚠️ **Important:** `API/API.py` loads the **base** `black-forest-labs/FLUX.1-dev` model directly and does **not** load the trained LoRA adapter. It serves plain FLUX.1-dev output, not the fine-tuned character model. For LoRA-fine-tuned generations, use `cloud/inference.py` (`modal run cloud/inference.py`) or the local `scripts/inference.py`, both of which do load the trained adapter.
+
 ---
 
 ## 🎛️ Configuration
@@ -186,4 +199,4 @@ Set `dataset.source` in `config.yaml`:
 - **Precision**: bfloat16 throughout (no GradScaler needed)
 - **LoRA**: Applied to attention projections (`to_q`, `to_k`, `to_v`, etc.)
 - **Packing**: Latents packed to (B, H/2·W/2, C·4) as required by FLUX
-- **Guidance**: Guidance tensor hardcoded at 3.5 (FLUX.1-dev distillation requirement)
+- **Guidance**: Guidance value defaults to 3.5 (FLUX.1-dev distillation requirement), configurable via `config.yaml` (`training.guidance_scale` / `inference.guidance_scale`) or the `--cfg-scale` CLI flag — not literally hardcoded, but values far from 3.5 are not recommended for this distilled model.

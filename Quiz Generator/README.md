@@ -84,7 +84,9 @@ Groq API (LLM)
   Setup (Local) :
 git clone <repo-link>
 cd <project-folder>
-pip install -r requirements.txt
+pip install fastapi uvicorn langchain-groq langchain-core langchain langchain-openai python-dotenv modal pydantic
+
+(There is no requirements.txt in this folder yet — install the packages above directly, or generate one with `pip freeze > requirements.txt` after installing.)
 
 Create .env file:
 
@@ -92,12 +94,14 @@ GROQ_API_KEY=your_api_key_here
 
 Run locally:
 
-python main_modal.py
+python main_api.py
  Deployment
 
-The API is deployed using Modal.
+The API is deployed using Modal. Before deploying, create a Modal secret named `groq-api-key` containing your Groq key (the deployed function reads it via `Secret.from_name("groq-api-key")`, not from `.env`):
 
-modal deploy main_modal.py
+modal secret create groq-api-key GROQ_API_KEY=your_api_key_here
+
+modal deploy main_api.py
  ##  Notes
 Correct answers are hidden from users
 Evaluation is handled via /submit-quiz/
@@ -108,4 +112,3 @@ This API can be used with:
 
 Summary generation models
 Frontend / mobile apps
-

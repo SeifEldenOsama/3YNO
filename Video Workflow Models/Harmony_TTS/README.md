@@ -40,6 +40,8 @@ Harmony_TTS/
 pip install -r requirements.txt
 ```
 
+> Note: `requirements.txt` still includes the full legacy Parler-TTS training stack (`torch`, `transformers`, `peft`, `bitsandbytes`, `parler-tts`, etc.). None of these are needed for the current Gemini TTS inference path, which only calls the Gemini REST API over HTTP — they're kept only for the legacy `train.py` / `trainer.py` scripts.
+
 ```bash
 cp .env.example .env
 ```
@@ -82,6 +84,25 @@ python scripts/inference.py --text "Hello" --description "Aoede A calm and frien
 ```bash
 modal deploy API/API.py
 ```
+
+Then POST to the deployed URL:
+
+```bash
+curl -X POST https://<your-modal-url>/synthesize \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Hello, this is Harmony speaking.", "description": "Aoede A calm and friendly female voice with a warm clear tone."}' \
+  --output output.wav
+```
+
+Request body:
+```json
+{
+  "text": "Hello, this is Harmony speaking.",
+  "description": "Aoede A calm and friendly female voice with a warm clear tone."
+}
+```
+
+Response: raw `audio/wav` bytes.
 
 ---
 

@@ -2,13 +2,13 @@
 
 An AI pipeline that turns a plain-text educational lesson into a fully structured children's animated story — complete with characters, backgrounds, scene-by-scene passages, and voice scripts — ready to feed into a downstream image/video/TTS production pipeline.
 
-Inference is powered by the **HuggingFace Inference API** (via the OpenAI-compatible router), so **no GPU is required**. Orchestration runs on **Modal** (serverless cloud), which handles scheduling, secrets, and returning outputs to your machine.
+Text generation uses **Qwen/Qwen2.5-32B-Instruct**. `config.yaml` is set up to call it through the **HuggingFace Inference Router** (OpenAI-compatible), but the current `StoryGenerator.load_model()` implementation actually downloads and runs the model **locally** via `transformers`, and both the Modal cloud run (`cloud/run.py`) and the deployed API (`API/API.py`) explicitly request an **H100 GPU** — a GPU is required end-to-end today, despite the router-style config. Orchestration runs on **Modal** (serverless cloud), which handles scheduling, secrets, and returning outputs to your machine.
 
 ---
 
 ## How It Works
 
-The pipeline processes a lesson in five sequential stages:
+The pipeline processes a lesson in six sequential stages:
 
 ```
 lesson.txt
@@ -32,20 +32,19 @@ lesson.txt
 6. Generate Voice Scripts → shot-by-shot dialogue with speaker, voice tone & video prompts
     │
     ▼
-outputs/
-  ├── 00_generation_manifest.json   ← asset generation tasks (images, voices, frames)
-  ├── video_timeline.json           ← ordered shot list for video assembly
-  ├── story_index.json              ← full story with all scenes & shots
-  └── scenes/
-        └── scene_XX_<title>/
-              ├── scene.json
-              └── shots/
-                    └── shot_XX_<speaker>/
-                          ├── prompt.txt   ← video generation prompt
-                          └── voice.txt    ← TTS input
+output/
+  ├── characters.json     ← character list with name, visual description, output image path
+  ├── backgrounds.json    ← background list with name, visual description, output image path
+  ├── voices.json         ← every voice line (regular scenes + 3YNO host lines) with text, voice description, output audio path
+  ├── shots_flow.json     ← full ordered scene/shot manifest (background, characters, positions, video prompt, voice path per shot)
+  ├── characters/         ← empty folder, ready for generated character PNGs
+  ├── backgrounds/        ← empty folder, ready for generated background PNGs
+  └── voices/             ← empty folder, ready for generated voice WAVs
 ```
 
-All LLM calls go through the **HuggingFace Inference Router** using the `openai` Python package. The default model is `Qwen/Qwen2.5-32B-Instruct` served via the `featherless-ai` provider, but this is configurable in `config.yaml`.
+The API deployment (`API/API.py`) additionally runs a `generate_3yno_scenes` step that inserts intro/transition/outro narration lines for the fixed 3YNO host character; the local script (`scripts/run.py`) does not currently call this step, so its output omits the host scenes.
+
+`config.yaml`'s `model.id` (default `Qwen/Qwen2.5-32B-Instruct:featherless-ai`) and `model.hf_base_url` are set up for the HuggingFace Inference Router, but `StoryGenerator.load_model()` currently ignores `hf_base_url` and loads `model_id` as a local `transformers` checkpoint instead (see note above). Swapping in a different router-style model ID will not change behavior until the routed-inference code path is implemented.
 
 ---
 
@@ -58,13 +57,14 @@ story_generator/
 │   ├── config.py         # Config dataclasses + YAML/env loader
 │   └── save_outputs.py   # Structures and writes all output files
 ├── scripts/
-│   └── run.py            # Local entrypoint (no GPU required)
+│   └── run.py            # Local entrypoint (loads Qwen2.5-32B locally — needs a GPU)
 ├── cloud/
 │   └── run.py            # Modal cloud entrypoint
 ├── API/
 │   └── API.py            # Modal-hosted FastAPI endpoint
 ├── config.yaml           # All runtime settings
 ├── lesson.txt            # Your input lesson (edit this)
+├── 3YNO.png              # Fixed host-character image, required for API deploys — bundled into every output zip
 ├── requirements.txt
 ├── Makefile
 └── .env.example
@@ -77,8 +77,7 @@ story_generator/
 - Python 3.11+
 - A [HuggingFace](https://huggingface.co) account with a valid API token (`HF_TOKEN`)
 - For cloud execution: a [Modal](https://modal.com) account
-
-No GPU, no local model download, no CUDA required.
+- A CUDA GPU (the current implementation loads Qwen2.5-32B-Instruct locally via `transformers`; the cloud/API paths request an H100 on Modal). `config.yaml` includes router-style settings (`model.hf_base_url`) for a future hosted-inference path, but that path isn't wired up yet.
 
 ---
 
@@ -107,7 +106,7 @@ Edit `lesson.txt` with the educational content you want turned into a story.
 
 ### Local
 
-Runs the full pipeline locally — all LLM calls go out to the HuggingFace API.
+Runs the full pipeline locally. This downloads and runs Qwen2.5-32B-Instruct on your machine via `transformers` — a CUDA GPU with enough VRAM for a 32B model is required.
 
 ```bash
 # Using Makefile
@@ -126,7 +125,7 @@ Optional flags:
 
 ### Cloud (Modal)
 
-The job runs as a Modal task in the cloud. Modal handles the container, secrets, and result download. All LLM calls still go through the HuggingFace API — no GPU is provisioned.
+The job runs as a Modal task in the cloud. Modal handles the container, secrets, and result download. `cloud/run.py` provisions an **H100 GPU** to load and run the model.
 
 ```bash
 # Using Makefile
@@ -179,7 +178,7 @@ story:
   max_scenes: 10
 
 output:
-  dir: "outputs"
+  dir: "output"
 
 modal:
   app_name: "kids-story-generator"
@@ -187,9 +186,7 @@ modal:
   python_version: "3.11"
 ```
 
-To switch models, change `model.id` to any model available on the HuggingFace router, e.g.:
-- `"meta-llama/Llama-3.3-70B-Instruct:fireworks-ai"`
-- `"mistralai/Mistral-7B-Instruct-v0.3:hf-inference"`
+`model.id` is written in router format (`repo:provider`) and is only actually consumed by `scripts/run.py`, which passes it straight into a local `transformers.from_pretrained()` call — the `:provider` suffix is not valid there and will likely cause the local run to fail to find the repo. `cloud/run.py` and `API/API.py` don't read `model.id` from `config.yaml` at all; they hardcode `MODEL_ID = "Qwen/Qwen2.5-32B-Instruct"` directly in the file. To use a different model, edit `MODEL_ID` in `cloud/run.py` / `API/API.py` (for cloud/API runs) and set `model.id` in `config.yaml` to a plain HuggingFace repo id, without a `:provider` suffix (for local runs).
 
 ---
 
@@ -197,12 +194,11 @@ To switch models, change `model.id` to any model available on the HuggingFace ro
 
 | File | Description |
 |---|---|
-| `00_generation_manifest.json` | Lists all image prompts (characters + backgrounds), TTS tasks, and frame compositing tasks. |
-| `video_timeline.json` | Ordered list of every shot with timing estimates, file paths, and video prompts. |
-| `story_index.json` | Complete story structure: all scenes, characters per scene, shots, and lesson elements. |
-| `scenes/scene_XX_*/scene.json` | Per-scene data including background, characters with positions, and all shots. |
-| `scenes/.../shots/shot_XX_*/prompt.txt` | Video generation prompt for that shot. |
-| `scenes/.../shots/shot_XX_*/voice.txt` | TTS input: speaker name, voice description, and dialogue text. |
+| `characters.json` | List of characters: `name`, `description` (visual description), `output_path` (`characters/<name>.png`). Note: the fixed 3YNO host character is intentionally *not* included here — its image is copied in directly from `3YNO.png`. |
+| `backgrounds.json` | List of backgrounds: `name`, `description`, `output_path` (`backgrounds/<name>.png`). |
+| `voices.json` | Every voice line to synthesize — regular scene dialogue plus 3YNO host lines (API path only) — with `text`, `description` (voice description), and `output_path` (`voices/<name>.wav`). |
+| `shots_flow.json` | The full ordered scene/shot manifest: `{"scenes": [...]}`, where each scene has `scene_id`, `title`, `background`, `is_host_scene`, `characters` (name/path/position), and `shots` (voice path, video prompt, negative prompt, speaker per shot). This is the file the `video_generator` module expects inside its input zip. |
+| `characters/`, `backgrounds/`, `voices/` | Empty folders created alongside the JSON files, ready to receive the generated character/background images and voice audio from downstream models. |
 
 ---
 

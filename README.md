@@ -32,9 +32,11 @@ The application follows a sophisticated multi-stage pipeline to ensure education
 | **[Summarizer](./Video%20Workflow%20Models/bart_summarizer)** | Content Extraction & Scientific Distillation | BART-large-CNN | LoRA fine-tuning |
 | **[Story Generator](./Video%20Workflow%20Models/story_generator)** | Narrative Transformation & Character Planning | Qwen2.5-32B-Instruct | Prompt Engineering |
 | **[Character Generator](./Video%20Workflow%20Models/flux_lora_project)** | Character & Background Image Generation | FLUX.1-dev | LoRA fine-tuning |
-| **[Harmony TTS](./Video%20Workflow%20Models/Harmony_TTS)** | Voice Generation for Characters | Parler-TTS-mini-v1 | Full fine-tuning |
+| **[Harmony TTS](./Video%20Workflow%20Models/Harmony_TTS)** | Voice Generation for Characters | Gemini 2.5 Flash TTS | API inference (prompt engineering) |
 | **[Video Generator](./Video%20Workflow%20Models/video_generator)** | Character Video Synthesis | LTX-2-19b-distilled | Audio-to-video + Camera Control |
 | **[3YNO Chatbot](./3YNO%20Chatbot)** | Dyslexia Support AI Assistant | Gemini 2.5 Flash | Prompt Engineering |
+| **[Quiz Generator](./Quiz%20Generator)** | Post-Video MCQ Generation & Evaluation | Llama 3.1 8B (via Groq) | Prompt Engineering |
+| **[OCR](./OCR)** | Document/Camera Text Extraction | GLM-OCR (zai-org/GLM-OCR) | Inference only |
 
 ---
 
@@ -59,14 +61,13 @@ LoRA fine-tuning of [facebook/bart-large-cnn](https://huggingface.co/facebook/ba
 
 ### Story Generator — Qwen2.5-32B-Instruct
 
-Uses [Qwen/Qwen2.5-32B-Instruct](https://huggingface.co/Qwen/Qwen2.5-32B-Instruct) via prompt engineering to transform educational lessons into structured children's stories with characters, scenes, and voice-ready scripts. No fine-tuning required — the model follows detailed multi-stage prompts out of the box.
+Uses [Qwen/Qwen2.5-32B-Instruct](https://huggingface.co/Qwen/Qwen2.5-32B-Instruct) via prompt engineering to transform educational lessons into structured children's stories with characters, scenes, and voice-ready scripts. No fine-tuning required — the model follows detailed multi-stage prompts out of the box. The model is currently loaded and run directly on a GPU worker (not called through a hosted inference API); see the module README for details.
 
 | | |
 |---|---|
 | Base model | `Qwen/Qwen2.5-32B-Instruct` |
 | Approach | Prompt engineering (no fine-tuning) |
-| Quantization | 4-bit NF4 via `bitsandbytes` |
-| GPU | A100 80GB |
+| GPU | H100 |
 | Cloud runtime | [Modal](https://modal.com) |
 | Module path | [`./Video Workflow Models/story_generator`](./Video%20Workflow%20Models/story_generator) |
 
@@ -82,7 +83,7 @@ Fine-tuned [black-forest-labs/FLUX.1-dev](https://huggingface.co/black-forest-la
 | Approach | LoRA fine-tuning (rank 16, alpha 16) |
 | Dataset | Character descriptions (~2016 images) |
 | Training | 2000 steps on H100 80GB |
-| HF Repo | [SeifElden2342532/flux-lora-characters](https://huggingface.co/SeifElden2342532/flux-lora-characters) |
+| HF Repo | [seifosamahosney/flux-lora-characters](https://huggingface.co/seifosamahosney/flux-lora-characters) |
 
 ---
 
@@ -102,19 +103,18 @@ Takes a character image and a voice audio clip produced by Harmony TTS, and synt
 
 ---
 
-### Harmony TTS — Parler-TTS full fine-tuned
+### Harmony TTS — Gemini TTS (API inference)
 
-Full fine-tuning of [parler-tts/parler-tts-mini-v1](https://huggingface.co/parler-tts/parler-tts-mini-v1) for generating expressive character voices in educational videos.
+Voice generation for educational characters, powered by the **Google Gemini TTS API** (`gemini-2.5-flash-preview-tts`) with automatic API-key rotation and fallback. The module also contains a legacy full fine-tuning pipeline for `parler-tts/parler-tts-mini-v1`, which is kept in the codebase but is **not used** by the current inference path.
 
 | | |
 |---|---|
-| Base model | `parler-tts/parler-tts-mini-v1` |
-| Approach | Full fine-tuning (all weights) |
-| Dataset | `SeifElden2342532/parler-tts-dataset-format` (18,700 samples) |
-| Max steps | 1,000 |
-| Learning rate | 1e-5 (cosine) |
-| GPU | H100 80GB |
-| HF Repo | [SeifElden2342532/Harmony_Parler_TTS](https://huggingface.co/SeifElden2342532/Harmony_Parler_TTS) |
+| Provider | Google Gemini TTS API |
+| Model | `gemini-2.5-flash-preview-tts` |
+| Approach | API inference (prompt engineering), no fine-tuning, no GPU |
+| Legacy (unused) | Full fine-tuning of `parler-tts/parler-tts-mini-v1` — see module README |
+| Cloud runtime | [Modal](https://modal.com) |
+| Module path | [`./Video Workflow Models/Harmony_TTS`](./Video%20Workflow%20Models/Harmony_TTS) |
 
 ---
 
@@ -129,6 +129,34 @@ A conversational AI assistant specialised in dyslexia support and visual learnin
 | API | Google Generative AI |
 | Cloud runtime | [Modal](https://modal.com) |
 | Module path | [`./3YNO Chatbot`](./3YNO%20Chatbot) |
+
+---
+
+### Quiz Generator — Llama 3.1 8B (via Groq)
+
+Generates 5 multiple-choice questions from a summary/lesson text and evaluates submitted answers. Built with FastAPI + LangChain, deployed on Modal.
+
+| | |
+|---|---|
+| Model | `llama-3.1-8b-instant` |
+| Provider | Groq API (via LangChain) |
+| Approach | Prompt engineering, no fine-tuning |
+| Cloud runtime | [Modal](https://modal.com) |
+| Module path | [`./Quiz Generator`](./Quiz%20Generator) |
+
+---
+
+### OCR — GLM-OCR
+
+Document/camera image understanding and text extraction using **zai-org/GLM-OCR**, supporting text, formula, table, and structured-JSON recognition.
+
+| | |
+|---|---|
+| Model | `zai-org/GLM-OCR` |
+| Approach | Inference only, no fine-tuning |
+| GPU | A10G |
+| Cloud runtime | [Modal](https://modal.com) |
+| Module path | [`./OCR`](./OCR) |
 
 ---
 

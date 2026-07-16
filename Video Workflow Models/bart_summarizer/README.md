@@ -106,6 +106,35 @@ python scripts/upload.py --path ./outputs/model
 modal deploy API/API.py
 ```
 
+Then POST to the deployed URL:
+
+```bash
+curl -X POST https://<your-modal-url>/process \
+  -H "Content-Type: application/json" \
+  -d '{"text": "your lesson text here", "max_length": 256, "num_beams": 4}'
+```
+
+Request body:
+```json
+{
+  "text": "your lesson text here",
+  "max_length": 256,
+  "num_beams": 4
+}
+```
+`max_length` and `num_beams` are optional (default `256` and `4`).
+
+Response:
+```json
+{
+  "summary": "...",
+  "input_words": 128,
+  "output_words": 42
+}
+```
+
+> Note: this endpoint runs inference on an `L4` GPU, separate from the `H100` used for training (see `API/API.py`).
+
 ---
 
 ## Configuration
